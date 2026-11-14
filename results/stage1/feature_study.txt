@@ -1,0 +1,29 @@
+Leave-one-run-out CV on training runs (pooled R2; higher is better)
+features              logW    peak_pos  log_height
+raw                  0.772       0.486       0.323
+raw+lag              0.769       0.485       0.344
+raw+phys             0.776       0.491       0.334
+raw+phys+lag         0.775       0.488       0.356
+compact              0.690       0.382       0.297
+compact+lag          0.682       0.387       0.293
+held-out run13 (R2; slope pred-vs-true)
+raw             0.761 / 0.74  0.687 / 0.66  0.433 / 0.36
+raw+lag         0.766 / 0.74  0.684 / 0.66  0.458 / 0.37
+raw+phys        0.763 / 0.77  0.690 / 0.66  0.393 / 0.35
+raw+phys+lag    0.769 / 0.76  0.689 / 0.65  0.433 / 0.37
+compact         0.696 / 0.68  0.540 / 0.55  0.155 / 0.26
+compact+lag     0.682 / 0.64  0.531 / 0.54  0.151 / 0.25
+seconds 75
+residual lag-1 autocorrelation within run (0 = shot-to-shot errors independent):
+  logW       -0.14 +0.17 +0.03 -0.01 +0.08 +0.23 -0.08 (last = run13)
+  peak_pos   +0.05 +0.02 +0.07 -0.06 +0.15 +0.01 +0.14 (last = run13)
+  log_height +0.11 +0.07 +0.00 +0.02 -0.02 +0.10 -0.17 (last = run13)
+online bias correction: prediction + a * mean of the previous k residuals in the same run
+  logW       k= 5: best a on training runs 0.3 | CV R2 0.771 -> 0.776 | run13 R2 0.760 -> 0.758
+  logW       k=20: best a on training runs 0.4 | CV R2 0.771 -> 0.776 | run13 R2 0.760 -> 0.762
+  peak_pos   k= 5: best a on training runs 0.1 | CV R2 0.492 -> 0.493 | run13 R2 0.687 -> 0.686
+  peak_pos   k=20: best a on training runs 0.3 | CV R2 0.492 -> 0.497 | run13 R2 0.687 -> 0.685
+  log_height k= 5: best a on training runs 0.4 | CV R2 0.324 -> 0.358 | run13 R2 0.432 -> 0.413
+  log_height k=20: best a on training runs 0.6 | CV R2 0.324 -> 0.362 | run13 R2 0.432 -> 0.414
+current (raw)  MSE 0.0321  W err 0.146  CRPS 0.0756  cov all 0.843 on-beam 0.904  peak ht 2.44
+raw+phys+lag   MSE 0.0319  W err 0.143  CRPS 0.0751  cov all 0.850 on-beam 0.906  peak ht 2.44
