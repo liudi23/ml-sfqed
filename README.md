@@ -4,14 +4,16 @@ Uncertainty-aware ML pipeline from real Gemini laser–plasma data to a fast sur
 
 ```
 [Stage 1] Gemini LWFA shots  -> ML beam model (diagnostics -> e- spectrum, with uncertainty)
-[Stage 2] Ptarmigan MC        -> gamma spectrum, positron yield over (beam, laser) parameters
-[Stage 3] Fast surrogate      -> observables with uncertainty, target >=1000x faster than MC
+[Stage 2] Ptarmigan MC        -> electron energy loss, photon spectrum and angles over (beam, laser) parameters
+[Stage 3] Fast surrogate      -> observables with uncertainty, >=1000x faster; Bayesian inference of collision parameters
 ```
 
 ## Status
 - **Stage 1 (done, first version):** beam model with an explicit spectral peak + per-bin calibrated beam sampler. On the authors' split: spectral MSE 0.048 vs 0.057 published; beam-energy error 12.4% (a tie); 90% spectral band covers 92% of bins. Held-out last run: 14% beam-energy error; band covers 90% of on-beam bins.
-- **Stage 2 prep (done):** Ptarmigan v1.6.1 built and validated against Landau–Lifshitz, quantum RR and weak-field Compton theory (`results/ptarmigan_validation/`).
-- **Stage 3:** not started.
+- **Stage 2 (in progress):** Ptarmigan v1.6.1 built and validated against Landau–Lifshitz, quantum RR and weak-field Compton theory (`results/ptarmigan_validation/`); parameter scan next.
+- **Stage 3 (planned):** surrogate for the simulation and surrogate-accelerated Bayesian inference of collision parameters.
+
+See [docs/roadmap.md](docs/roadmap.md) for the stage plan and how this relates to Streeter et al. (2023) and Los et al. (2024/2025).
 
 ## Data
 Real shots from the CLF Gemini laser (2021 radiation-reaction campaign): M. J. V. Streeter et al., *Laser wakefield accelerator modelling with variational neural networks*, High Power Laser Sci. Eng. 11, e9 (2023), doi:10.1017/hpl.2022.47. Dataset and code: Zenodo, doi:10.5281/zenodo.7510352 (CC BY 4.0).
