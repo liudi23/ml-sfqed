@@ -136,11 +136,19 @@ def plots(name, d, te, preds, Yte, Wte):
 def plot_shap(shap):
     import matplotlib.pyplot as plt
     names = [n for n, _ in shap][::-1]; vals = [v for _, v in shap][::-1]
-    fig, ax = plt.subplots(figsize=(4.5, 3))
+    fig, ax = plt.subplots(figsize=(5.2, 3.2))
     ax.barh(names, vals, color="#2a78d6", height=0.6)
     ax.set_xlabel("mean |SHAP| on beam energy [J]"); ax.grid(axis="y", visible=False)
-    ax.set_title("What drives beam energy (time split, training shots)")
-    fig.tight_layout(); fig.savefig(OUT / "shap_beam_energy.png", dpi=150); plt.close(fig)
+    fig.suptitle("What drives beam energy", fontsize=10, x=0.02, ha="left")
+    ax.set_title("time split, training shots", fontsize=8, color="#52514e", loc="left")
+    fig.tight_layout()
+    fig.canvas.draw()  # check every text element fits inside the figure
+    fb = fig.bbox
+    for t in [fig._suptitle, ax.title, ax.xaxis.label, *ax.get_yticklabels()]:
+        bb = t.get_window_extent()
+        if bb.x0 < fb.x0 - 1 or bb.x1 > fb.x1 + 1 or bb.y1 > fb.y1 + 1:
+            raise RuntimeError(f"text {t.get_text()!r} is clipped in shap_beam_energy.png")
+    fig.savefig(OUT / "shap_beam_energy.png", dpi=150); plt.close(fig)
 
 
 def main():
