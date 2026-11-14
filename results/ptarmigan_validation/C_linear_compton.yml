@@ -1,0 +1,32 @@
+# Test C: weak-field (linear) Compton limit in a plane wave - spectrum edge and yield
+control:
+  radiation_reaction: true
+  pair_creation: false
+  rng_seed: 1
+laser:
+  a0:
+    start: 0.25
+    step: 0.25
+    stop: 0.5
+  wavelength: 0.8 * micro
+  polarization: linear
+  envelope: gaussian
+  fwhm_duration: 30.0 * femto
+beam:
+  n: 1000000
+  species: electron
+  gamma: 1000.0 * MeV / (me * c^2)
+  radius: 1.0 * micro
+  length: 1.0 * micro
+output:
+  ident: C
+  units: hep
+  file_format: plain_text
+  photon:
+    - energy:(150;auto;energy in 0.0, 30.0 * MeV)
+stats:
+  photon:
+    - total number
+    - mean energy
+    - maximum energy
+    - total number for energy in (23.2 * MeV; auto)

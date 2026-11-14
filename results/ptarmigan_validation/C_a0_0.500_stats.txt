@@ -1,0 +1,4 @@
+photon: total number = 4.323900e4 [1]
+photon: mean energy = 1.182623e1 [MeV]
+photon: maximum energy = 7.735954e1 [MeV]
+photon: total number (energy [MeV] > 2.320000e1) = 2.181000e3 [1]

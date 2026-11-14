@@ -1,0 +1,16 @@
+data/raw/
+data/processed/
+*.h5
+*.parquet
+mlruns/
+wandb/
+.venv/
+__pycache__/
+.ipynb_checkpoints/
+.DS_Store
+results/**/*.npz
+.Rhistory
+_to_delete/
+*.egg-info/
+.ruff_cache/
+.pytest_cache/

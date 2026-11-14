@@ -1,0 +1,31 @@
+# Test B (B_quantum_lcfa): quantum radiation reaction in a plane wave
+control:
+  lcfa: true
+  radiation_reaction: true
+  pair_creation: false
+  rng_seed: 1
+laser:
+  a0:
+    start: 5.0
+    step: 5.0
+    stop: 15.0
+  wavelength: 0.8 * micro
+  polarization: linear
+  envelope: gaussian
+  fwhm_duration: 30.0 * femto
+beam:
+  n: 2000
+  species: electron
+  gamma: 1000.0 * MeV / (me * c^2)
+  radius: 1.0 * micro
+  length: 1.0 * micro
+output:
+  ident: B_quantum_lcfa
+  units: hep
+stats:
+  electron:
+    - mean gamma
+    - variance gamma
+  photon:
+    - total number
+    - mean energy

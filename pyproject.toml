@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mlsfqed"
+version = "0.1.0"
+description = "ML pipeline from Gemini LWFA data to a strong-field QED surrogate"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy", "scipy", "pandas", "pyarrow", "h5py",
+  "scikit-learn", "lightgbm", "shap",
+  "torch", "matplotlib", "pyyaml", "tqdm",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "ruff", "pre-commit", "mlflow"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mlsfqed"]
+
+[tool.ruff]
+line-length = 100

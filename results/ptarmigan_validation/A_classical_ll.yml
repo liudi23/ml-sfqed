@@ -1,0 +1,31 @@
+# Test A: classical radiation reaction (Landau-Lifshitz) in a plane wave vs analytic result
+control:
+  classical: true
+  radiation_reaction: true
+  pair_creation: false
+  rng_seed: 1
+laser:
+  a0:
+    start: 2.0
+    step: 4.0
+    stop: 22.0
+  wavelength: 0.8 * micro
+  polarization: linear
+  envelope: gaussian
+  fwhm_duration: 30.0 * femto
+beam:
+  n: 200
+  species: electron
+  gamma: 1000.0 * MeV / (me * c^2)
+  radius: 1.0 * micro
+  length: 1.0 * micro
+output:
+  ident: A
+  units: hep
+stats:
+  electron:
+    - mean gamma
+    - variance gamma
+  photon:
+    - total number
+    - mean energy

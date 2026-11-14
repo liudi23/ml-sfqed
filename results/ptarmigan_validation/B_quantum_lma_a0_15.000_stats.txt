@@ -1,0 +1,4 @@
+electron: mean gamma = 1.485917e3 [1]
+electron: variance gamma = 6.162518e4 [1]
+photon: total number = 1.608700e4 [1]
+photon: mean energy = 2.992465e1 [MeV]

@@ -1,0 +1,166 @@
+{
+  "paper_reported": {
+    "ensemble_MSE": 0.057,
+    "single_model_MSE": 0.073,
+    "naive_MSE": 0.106,
+    "beam_energy_rel_rms": 0.124,
+    "beam_energy_rel_spread": 0.3,
+    "autoencoder_MSE": 0.011
+  },
+  "members": 20,
+  "seed": 0,
+  "paper": {
+    "n_train": 570,
+    "n_test": 75,
+    "test_beam_energy_rel_spread": 0.29951479421589144,
+    "naive_mean": {
+      "MSE": 0.10620177973255432,
+      "beam_energy_rel_rms": 0.3326464872811013
+    },
+    "ridge_pca": {
+      "MSE": 0.06363885618243026,
+      "beam_energy_rel_rms": 0.15661842119330152
+    },
+    "lgbm_ensemble": {
+      "MSE": 0.05570835095433391,
+      "beam_energy_rel_rms": 0.14887434017213158,
+      "single_member_MSE_mean": 0.06195268905510989,
+      "raw_90pc_coverage": 0.49333333333333335,
+      "calibrated_90pc_coverage": 0.88,
+      "calibrated_mean_interval_halfwidth_rel": 0.25165383580071643,
+      "CRPS_beam_energy_raw_J": 0.058309503265211095,
+      "CRPS_beam_energy_calibrated_J": 0.05144576562716484,
+      "fit_seconds": 6.0
+    },
+    "mlp_ensemble": {
+      "MSE": 0.06172204770237862,
+      "beam_energy_rel_rms": 0.16900620718244047,
+      "single_member_MSE_mean": 0.07211712670444821,
+      "raw_90pc_coverage": 0.68,
+      "calibrated_90pc_coverage": 0.88,
+      "calibrated_mean_interval_halfwidth_rel": 0.2948054904234443,
+      "CRPS_beam_energy_raw_J": 0.0636942114732566,
+      "CRPS_beam_energy_calibrated_J": 0.06005740045996525,
+      "fit_seconds": 0.8
+    },
+    "two_part": {
+      "MSE": 0.049935486002633776,
+      "beam_energy_rel_rms": 0.12336333823104026,
+      "calibrated_90pc_coverage": 0.8933333333333333,
+      "calibrated_mean_interval_halfwidth_rel": 0.21668737739720934,
+      "CRPS_beam_energy_sampler_J": 0.04615149763347855,
+      "fit_seconds": 10.7
+    },
+    "beam_energy_shap_top": [
+      [
+        "scatter_pc2",
+        0.11854937182763868
+      ],
+      [
+        "scatter_pc1",
+        0.03770159529317224
+      ],
+      [
+        "laser_E",
+        0.035467413386122575
+      ],
+      [
+        "scatter_pc4",
+        0.02994695445277308
+      ],
+      [
+        "f40_theta",
+        0.013052484244536696
+      ],
+      [
+        "f40_x",
+        0.011606544707190159
+      ],
+      [
+        "scatter_pc3",
+        0.009997949136621822
+      ],
+      [
+        "scatter_pc5",
+        0.0071740021119504165
+      ]
+    ]
+  },
+  "time": {
+    "n_train": 531,
+    "n_test": 114,
+    "test_beam_energy_rel_spread": 0.2847416105185195,
+    "naive_mean": {
+      "MSE": 0.10249934452074728,
+      "beam_energy_rel_rms": 0.5898496748066601
+    },
+    "ridge_pca": {
+      "MSE": 0.050903148844536845,
+      "beam_energy_rel_rms": 0.2678306381314326
+    },
+    "lgbm_ensemble": {
+      "MSE": 0.0399319815687594,
+      "beam_energy_rel_rms": 0.1888179312746216,
+      "single_member_MSE_mean": 0.04516517867068938,
+      "raw_90pc_coverage": 0.43859649122807015,
+      "calibrated_90pc_coverage": 0.9122807017543859,
+      "calibrated_mean_interval_halfwidth_rel": 0.2733141427914618,
+      "CRPS_beam_energy_raw_J": 0.05796276552965181,
+      "CRPS_beam_energy_calibrated_J": 0.049940183798470164,
+      "fit_seconds": 6.3
+    },
+    "mlp_ensemble": {
+      "MSE": 0.04529514589122427,
+      "beam_energy_rel_rms": 0.2715304178538598,
+      "single_member_MSE_mean": 0.0561156326604759,
+      "raw_90pc_coverage": 0.6754385964912281,
+      "calibrated_90pc_coverage": 0.9035087719298246,
+      "calibrated_mean_interval_halfwidth_rel": 0.34152788042335164,
+      "CRPS_beam_energy_raw_J": 0.06261548519284257,
+      "CRPS_beam_energy_calibrated_J": 0.06033249922451382,
+      "fit_seconds": 0.7
+    },
+    "two_part": {
+      "MSE": 0.03342388650069415,
+      "beam_energy_rel_rms": 0.14193544324608792,
+      "calibrated_90pc_coverage": 0.9035087719298246,
+      "calibrated_mean_interval_halfwidth_rel": 0.2359258348633276,
+      "CRPS_beam_energy_sampler_J": 0.04148880925597216,
+      "fit_seconds": 9.5
+    },
+    "beam_energy_shap_top": [
+      [
+        "scatter_pc2",
+        0.12089126310275054
+      ],
+      [
+        "laser_E",
+        0.03915822922316928
+      ],
+      [
+        "scatter_pc4",
+        0.032010562396188616
+      ],
+      [
+        "scatter_pc1",
+        0.019950906019960933
+      ],
+      [
+        "f40_theta",
+        0.016909537555867243
+      ],
+      [
+        "f40_x",
+        0.012456217520439057
+      ],
+      [
+        "scatter_pc3",
+        0.009978604015792205
+      ],
+      [
+        "f40_sy",
+        0.008427642195922153
+      ]
+    ]
+  }
+}

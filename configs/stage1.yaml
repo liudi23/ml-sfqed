@@ -1,0 +1,9 @@
+data:
+  raw_zip: data/raw/LWFA_VAE.zip
+split:
+  kind: time_ordered   # avoid leakage from drift during the run
+  test_fraction: 0.2
+model:
+  kind: lightgbm_quantile
+  quantiles: [0.05, 0.5, 0.95]
+seed: 0

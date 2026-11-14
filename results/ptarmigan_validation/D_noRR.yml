@@ -1,0 +1,43 @@
+# Test D (no recoil, checks spectrum import): Gemini-like collision, electron spectrum sampled from the Stage 1 model (run13 shot), timing
+control:
+  radiation_reaction: false
+  pair_creation: true
+  increase_pair_rate_by: auto
+  rng_seed: 1
+laser:
+  a0: 10.0
+  wavelength: 0.8 * micro
+  waist: 2.0 * micro
+  polarization: linear
+  envelope: gaussian
+  fwhm_duration: 45.0 * femto
+beam:
+  n: 10000
+  species: electron
+  charge: 815.646 * pico
+  radius: 2.0 * micro
+  length: 5.0 * micro
+  rms_divergence: 2.0 * milli
+  spectrum:
+    file: D_spectrum_run13_shot1.txt
+    min: 305.000000 * MeV / (me * c^2)
+    max: 1400.000000 * MeV / (me * c^2)
+    step: 5.502513 * MeV / (me * c^2)
+output:
+  ident: D_noRR
+  units: hep
+  file_format: plain_text
+  electron:
+    - energy:(100;auto)
+  photon:
+    - energy:(100;auto)
+stats:
+  electron:
+    - mean energy
+    - total number
+  photon:
+    - total number
+    - mean energy
+    - total energy
+  positron:
+    - total number

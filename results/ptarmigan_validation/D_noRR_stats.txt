@@ -1,0 +1,6 @@
+electron: mean energy = 6.127913e2 [MeV]
+electron: total number = 5.090861e9 [1]
+positron: total number = 0.000000e0 [1]
+photon: total number = 1.079364e10 [1]
+photon: mean energy = 1.031907e1 [MeV]
+photon: total energy = 2.187849e5 [MeV]

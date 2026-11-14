@@ -1,0 +1,4 @@
+Warning: as of Ptarmigan v1.4.0, all bounds in summary statistics are assumed to be in
+         SI units. Energy and momentum bounds, previously interpreted as MeV and MeV/c,
+         must be corrected, using conversion constants if necessary. Continuing...
+wall 33.50 s
