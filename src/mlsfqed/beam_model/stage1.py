@@ -57,7 +57,7 @@ class BaggedSpectrumModel:
         if self.kind == "lgbm":
             return [lgb.LGBMRegressor(n_estimators=300, learning_rate=0.03, num_leaves=8, min_child_samples=10,
                                       subsample=0.8, subsample_freq=1, colsample_bytree=0.8,
-                                      reg_lambda=1.0, random_state=s, verbose=-1) for _ in range(self.n_pc)]
+                                      reg_lambda=1.0, random_state=s, n_jobs=1, verbose=-1) for _ in range(self.n_pc)]
         if self.kind == "mlp":
             return MLPRegressor(hidden_layer_sizes=(32, 32), alpha=1e-2, learning_rate_init=3e-3,
                                 max_iter=3000, early_stopping=True, validation_fraction=0.15,
@@ -141,7 +141,7 @@ def crps_ensemble(samples, y):
 def lgbm_beam_energy_shap(X, w, names, seed=0):
     """Single LightGBM on total beam energy; mean |SHAP| per feature (LightGBM's built-in TreeSHAP)."""
     m = lgb.LGBMRegressor(n_estimators=400, learning_rate=0.03, num_leaves=8, min_child_samples=10,
-                          subsample=0.8, subsample_freq=1, random_state=seed, verbose=-1).fit(X, w)
+                          subsample=0.8, subsample_freq=1, random_state=seed, n_jobs=1, verbose=-1).fit(X, w)
     contrib = m.predict(X, pred_contrib=True)[:, :-1]
     imp = np.abs(contrib).mean(0)
     order = np.argsort(imp)[::-1]

@@ -52,7 +52,8 @@ class RawFeaturiser:
 
 
 LGBM_W = dict(n_estimators=600, learning_rate=0.02, num_leaves=8, min_child_samples=10, subsample=0.8,
-              subsample_freq=1, colsample_bytree=0.5, reg_lambda=1.0, verbose=-1)
+              subsample_freq=1, colsample_bytree=0.5, reg_lambda=1.0, verbose=-1,
+              n_jobs=1)  # one thread: on ~600 shots, multi-threading is far slower (LightGBM 4.x defaults to all cores)
 
 
 class EnergyEnsemble:
