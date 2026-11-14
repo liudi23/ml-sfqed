@@ -1,0 +1,28 @@
+{
+  "train_runs": [
+    "run05",
+    "run06",
+    "run08",
+    "run09",
+    "run10",
+    "run11",
+    "run12"
+  ],
+  "test_run": "run13",
+  "n_test": 114,
+  "fixed (training calibration)": {
+    "coverage_all": 0.8429824561403508,
+    "coverage_on_beam": 0.9045554795041448,
+    "coverage_first_half": 0.8341228070175438,
+    "coverage_second_half": 0.8518421052631578,
+    "mean_band_width_rel": 0.3480167414317503
+  },
+  "adaptive gamma=0.2 global": {
+    "coverage_all": 0.8871491228070175,
+    "coverage_on_beam": 0.9347478895733515,
+    "coverage_first_half": 0.8685964912280701,
+    "coverage_second_half": 0.9057017543859649,
+    "mean_band_width_rel": 0.40006710042441274
+  },
+  "seconds": 34.9
+}

@@ -1,0 +1,122 @@
+{
+  "train_runs": [
+    "run05",
+    "run06",
+    "run08",
+    "run09",
+    "run10"
+  ],
+  "test_run": "run11",
+  "n_test": 124,
+  "fixed (training calibration)": {
+    "coverage_all": 0.8470564516129032,
+    "coverage_on_beam": 0.8525187272352416,
+    "coverage_first_half": 0.8467741935483871,
+    "coverage_second_half": 0.8473387096774193,
+    "mean_band_width_rel": 0.34989255003489445
+  },
+  "adaptive gamma=0.01 per_bin": {
+    "coverage_all": 0.854516129032258,
+    "coverage_on_beam": 0.857398116967906,
+    "coverage_first_half": 0.8520161290322581,
+    "coverage_second_half": 0.8570161290322581,
+    "mean_band_width_rel": 0.35301591884160183
+  },
+  "adaptive gamma=0.01 global": {
+    "coverage_all": 0.8550806451612903,
+    "coverage_on_beam": 0.8615215449110026,
+    "coverage_first_half": 0.8495967741935484,
+    "coverage_second_half": 0.8605645161290323,
+    "mean_band_width_rel": 0.358655713826068
+  },
+  "adaptive gamma=0.02 per_bin": {
+    "coverage_all": 0.85875,
+    "coverage_on_beam": 0.8606968593223834,
+    "coverage_first_half": 0.8559677419354839,
+    "coverage_second_half": 0.8615322580645162,
+    "mean_band_width_rel": 0.3556974820163631
+  },
+  "adaptive gamma=0.02 global": {
+    "coverage_all": 0.8606854838709678,
+    "coverage_on_beam": 0.8677754106246993,
+    "coverage_first_half": 0.8535483870967742,
+    "coverage_second_half": 0.8678225806451613,
+    "mean_band_width_rel": 0.3656068253801318
+  },
+  "adaptive gamma=0.05 per_bin": {
+    "coverage_all": 0.8672580645161291,
+    "coverage_on_beam": 0.8663322108446155,
+    "coverage_first_half": 0.8641129032258065,
+    "coverage_second_half": 0.8704032258064516,
+    "mean_band_width_rel": 0.36304366341777294
+  },
+  "adaptive gamma=0.05 global": {
+    "coverage_all": 0.8711290322580645,
+    "coverage_on_beam": 0.8800769706549378,
+    "coverage_first_half": 0.8609677419354839,
+    "coverage_second_half": 0.8812903225806452,
+    "mean_band_width_rel": 0.38075112405140216
+  },
+  "adaptive gamma=0.1 per_bin": {
+    "coverage_all": 0.8754032258064516,
+    "coverage_on_beam": 0.874029276338396,
+    "coverage_first_half": 0.8715322580645162,
+    "coverage_second_half": 0.8792741935483871,
+    "mean_band_width_rel": 0.3721652696493447
+  },
+  "adaptive gamma=0.1 global": {
+    "coverage_all": 0.8799193548387096,
+    "coverage_on_beam": 0.8905229881107828,
+    "coverage_first_half": 0.8696774193548387,
+    "coverage_second_half": 0.8901612903225806,
+    "mean_band_width_rel": 0.39368330191334583
+  },
+  "adaptive gamma=0.2 per_bin": {
+    "coverage_all": 0.8811693548387097,
+    "coverage_on_beam": 0.8781527042814927,
+    "coverage_first_half": 0.8771774193548387,
+    "coverage_second_half": 0.8851612903225806,
+    "mean_band_width_rel": 0.38421646871339105
+  },
+  "adaptive gamma=0.2 global": {
+    "coverage_all": 0.8869354838709678,
+    "coverage_on_beam": 0.898976015394131,
+    "coverage_first_half": 0.8779838709677419,
+    "coverage_second_half": 0.8958870967741935,
+    "mean_band_width_rel": 0.4051294512031007
+  },
+  "adaptive gamma=0.5 per_bin": {
+    "coverage_all": 0.8894354838709677,
+    "coverage_on_beam": 0.8834444368084667,
+    "coverage_first_half": 0.8878225806451613,
+    "coverage_second_half": 0.8910483870967741,
+    "mean_band_width_rel": 0.4095639259040864
+  },
+  "adaptive gamma=0.5 global": {
+    "coverage_all": 0.8939516129032258,
+    "coverage_on_beam": 0.9068792522850663,
+    "coverage_first_half": 0.8891935483870967,
+    "coverage_second_half": 0.8987096774193548,
+    "mean_band_width_rel": 0.4217570694081345
+  },
+  "adaptive gamma=1.0 per_bin": {
+    "coverage_all": 0.8930645161290323,
+    "coverage_on_beam": 0.8852999793828603,
+    "coverage_first_half": 0.8895967741935484,
+    "coverage_second_half": 0.8965322580645161,
+    "mean_band_width_rel": 0.45701414788482864
+  },
+  "adaptive gamma=1.0 global": {
+    "coverage_all": 0.8968548387096774,
+    "coverage_on_beam": 0.9114150230224727,
+    "coverage_first_half": 0.8936290322580646,
+    "coverage_second_half": 0.9000806451612903,
+    "mean_band_width_rel": 0.43781513720363613
+  },
+  "chosen": {
+    "gamma": 0.2,
+    "mode": "global",
+    "key": "adaptive gamma=0.2 global"
+  },
+  "seconds": 25.7
+}

@@ -11,12 +11,12 @@
     "W_PIT_KS": 0.11833333333333329,
     "spectral_bin_coverage_90": 0.9204,
     "spectral_bin_coverage_90_on_beam": 0.9295417913884412,
-    "corr_logW_error_vs_meanE_error": -0.39286170505679396,
+    "corr_logW_error_vs_meanE_error": -0.3928616736219305,
     "population": {
       "model": {
         "W_KS": 0.05893333333333334,
         "meanE_KS": 0.10086666666666666,
-        "W_mean_J": 0.6480412278363336
+        "W_mean_J": 0.6480412270639534
       },
       "naive": {
         "W_KS": 0.10033333333333334,
@@ -38,14 +38,14 @@
       "0.9": 0.8947368421052632
     },
     "W_PIT_KS": 0.06798245614035092,
-    "spectral_bin_coverage_90": 0.8427631578947369,
-    "spectral_bin_coverage_90_on_beam": 0.9042512738611301,
-    "corr_logW_error_vs_meanE_error": -0.4857269347637165,
+    "spectral_bin_coverage_90": 0.8429824561403508,
+    "spectral_bin_coverage_90_on_beam": 0.9045554795041448,
+    "corr_logW_error_vs_meanE_error": -0.48573235593964215,
     "population": {
       "model": {
         "W_KS": 0.08750000000000002,
-        "meanE_KS": 0.19017543859649122,
-        "W_mean_J": 0.5194419861934034
+        "meanE_KS": 0.190219298245614,
+        "W_mean_J": 0.5194416799553426
       },
       "naive": {
         "W_KS": 0.36302631578947364,

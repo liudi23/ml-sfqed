@@ -14,3 +14,4 @@ _to_delete/
 *.egg-info/
 .ruff_cache/
 .pytest_cache/
+results/stage1/_online/

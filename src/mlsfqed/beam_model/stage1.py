@@ -30,8 +30,8 @@ class Featuriser:
     n_ne: int = 5
 
     def fit(self, d, idx):
-        self.p_iz = PCA(self.n_iz).fit(d["I_z_data"][idx])
-        self.p_ne = PCA(self.n_ne).fit(d["n_e_z_data"][idx])
+        self.p_iz = PCA(self.n_iz, svd_solver="full").fit(d["I_z_data"][idx])
+        self.p_ne = PCA(self.n_ne, svd_solver="full").fit(d["n_e_z_data"][idx])
         self.sc = StandardScaler().fit(self._raw(d)[idx])
         return self
 
@@ -65,7 +65,7 @@ class BaggedSpectrumModel:
         raise ValueError(self.kind)
 
     def fit(self, X, Y):
-        self.pca = PCA(self.n_pc).fit(Y)
+        self.pca = PCA(self.n_pc, svd_solver="full").fit(Y)
         C = self.pca.transform(Y)
         self.csc = StandardScaler().fit(C)
         Cs = self.csc.transform(C)
@@ -125,7 +125,7 @@ def interval_from_oob(model, E_MeV, alpha=0.1):
 
 
 def ridge_predict(Xtr, Ytr, Xte, n_pc=10):
-    pca = PCA(n_pc).fit(Ytr)
+    pca = PCA(n_pc, svd_solver="full").fit(Ytr)
     r = Ridge(alpha=1.0).fit(Xtr, pca.transform(Ytr))
     return pca.inverse_transform(r.predict(Xte))
 
