@@ -1,4 +1,4 @@
-"""Validate the beam sampler on held-out shots and export sampled beams for Stage 2.
+"""Validate the beam sampler (peak model, per-bin calibrated band) on held-out shots and export sampled beams for Stage 2.
 
 Checks, per split:
   - beam-energy coverage at 50/80/90% and PIT uniformity (KS distance from uniform)
@@ -21,9 +21,10 @@ from scipy.stats import ks_2samp
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
+sys.path.insert(0, str(ROOT / "scripts"))
 
 from mlsfqed.beam_model.stage1 import beam_energy  # noqa: E402
-from mlsfqed.beam_model.twopart import RawFeaturiser, TwoPartBeamModel, to_electron_spectrum  # noqa: E402
+from mlsfqed.beam_model.twopart import PeakBeamModel, RawFeaturiser, to_electron_spectrum  # noqa: E402
 from mlsfqed.data.gemini import load_all, physical_spectra, time_ordered_split  # noqa: E402
 
 OUT = ROOT / "results" / "stage1"
@@ -38,8 +39,8 @@ def validate(name, d, tr, te, n_samples, seed):
     Y = physical_spectra(d)
     rf = RawFeaturiser().fit(d, tr)
     Xtr, Xte = rf.transform(d, tr), rf.transform(d, te)
-    m = TwoPartBeamModel(E, seed=seed).fit(Xtr, Y[tr])
-    samp = m.sample(Xte, n_samples=n_samples, seed=seed)            # (n_te, n_s, bins)
+    m = PeakBeamModel(E, seed=seed).fit(Xtr, Y[tr]).calibrate()
+    samp = m.sample_calibrated(Xte, n_samples=n_samples, seed=seed)  # (n_te, n_s, bins)
     Yte, Wte = Y[te], beam_energy(Y[te], E)
     Ws = beam_energy(samp, E)
     out = {"n_train": int(tr.sum()), "n_test": int(te.sum()), "n_samples": n_samples}
@@ -98,6 +99,8 @@ def plot(name, d, samp, Yte, Wte, out):
     axs[1].set(xlabel="PIT of measured beam energy", ylabel="shots", title=f"Calibration (KS {out['W_PIT_KS']:.2f})")
     axs[1].legend(frameon=False, fontsize=8)
     fig.tight_layout()
+    from run_stage1 import check_fits
+    check_fits(fig, f"sampler_{name}.png")
     fig.savefig(OUT / f"sampler_{name}.png", dpi=150)
     plt.close(fig)
 

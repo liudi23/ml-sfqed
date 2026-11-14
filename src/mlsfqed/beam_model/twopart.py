@@ -57,7 +57,7 @@ LGBM_W = dict(n_estimators=600, learning_rate=0.02, num_leaves=8, min_child_samp
 
 
 class EnergyEnsemble:
-    """Bagged LightGBM on log beam energy, members trained on `frac` of shots."""
+    """Bagged LightGBM on one scalar target (log beam energy, peak parameters), members on `frac` of shots."""
 
     def __init__(self, n_members=20, frac=0.8, seed=0):
         self.n_members, self.frac, self.seed = n_members, frac, seed
@@ -79,6 +79,7 @@ class EnergyEnsemble:
         self.sd_floor = np.nanmedian(self.oob_sd)
         sd = np.maximum(np.nan_to_num(self.oob_sd, nan=self.sd_floor), self.sd_floor)
         self.has_oob = has
+        self.oob_sd_used = sd
         self.scores_all = (logW - self.oob_mu) / sd       # signed, normalised OOB residuals (nan where no OOB)
         self.scores = self.scores_all[has]
         return self
@@ -96,7 +97,52 @@ class EnergyEnsemble:
         return np.exp(mu), np.exp(mu + lo * sd), np.exp(mu + hi * sd)
 
 
-class TwoPartBeamModel:
+# ---------------------------------------------------------------- per-bin band calibration
+def _cqr_scores(samples, Y, level=0.9):
+    """Per-bin nonconformity of Y against a sampled band (scaled conformalised quantile regression)."""
+    a = (1 - level) / 2
+    med = np.median(samples, axis=1)
+    lo, hi = np.quantile(samples, [a, 1 - a], axis=1)
+    eps = 1e-3 * np.abs(Y).max()
+    return np.maximum((lo - Y) / (med - lo + eps), (Y - hi) / (hi - med + eps))
+
+
+def calibration_factors(samples, Y, level=0.9, smooth=9):
+    """Per-bin factor k_b: stretching sample deviations from the median by (1 + q_b) gives `level` coverage
+    on the calibration shots. A running median over `smooth` bins removes bin-to-bin noise."""
+    e = _cqr_scores(samples, Y, level)
+    n = len(e)
+    q = np.quantile(e, min(1.0, np.ceil((n + 1) * level) / n), axis=0)
+    pad = smooth // 2
+    qp = np.pad(q, pad, mode="edge")
+    q = np.array([np.median(qp[i:i + smooth]) for i in range(len(q))])
+    return 1.0 + q
+
+
+def apply_calibration(samples, k):
+    med = np.median(samples, axis=1, keepdims=True)
+    return np.clip(med + k * (samples - med), 0, None)
+
+
+class _CalibratedMixin:
+    """Adds OOB-based per-bin calibration. Subclasses provide _oob_train_samples(n, rng)."""
+
+    def calibrate(self, level=0.9, n_samples=100, seed=1):
+        rng = np.random.default_rng(seed)
+        samp, Yc = self._oob_train_samples(n_samples, rng)
+        self.k_bins = calibration_factors(samp, Yc, level)
+        return self
+
+    def sample_calibrated(self, X, n_samples=100, seed=0):
+        return apply_calibration(self.sample(X, n_samples, seed), self.k_bins)
+
+
+def _draw_other(rng, n_pool, i, size):
+    j = rng.integers(n_pool - 1, size=size)
+    return j + (j >= i)                                   # never the shot's own residual
+
+
+class TwoPartBeamModel(_CalibratedMixin):
     def __init__(self, E_MeV, n_members=20, seed=0, n_pc=10):
         self.E = np.asarray(E_MeV)
         self.energy = EnergyEnsemble(n_members=n_members, seed=seed)
@@ -119,6 +165,10 @@ class TwoPartBeamModel:
         both = has & self.energy.has_oob
         self.joint_scores = self.energy.scores_all[both]
         self.shape_resid = resid[both]
+        mean_c = np.full_like(true_c, np.nan)
+        for i in np.flatnonzero(has):
+            mean_c[i] = Pc[oob[:, i], i].mean(0)
+        self._both, self._oob_shape_mean, self.Y_train = both, mean_c, Y
         self._W_train = W
         return self
 
@@ -151,6 +201,20 @@ class TwoPartBeamModel:
         return S * W[..., None]
 
 
+    def _oob_train_samples(self, n_samples, rng):
+        """Samples for each training shot from OOB centres + other shots' paired residuals."""
+        E = self.E
+        both = self._both
+        idx = np.flatnonzero(both)
+        out = np.empty((len(idx), n_samples, len(E)))
+        for r, i in enumerate(idx):
+            j = _draw_other(rng, len(idx), r, n_samples)
+            logW = self.energy.oob_mu[i] + self.joint_scores[j] * self.energy.oob_sd_used[i]
+            C = self._oob_shape_mean[i][None, :] + self.shape_resid[j]
+            out[r] = self._shape_from_coeffs(C) * np.exp(logW)[:, None]
+        return out, self.Y_train[idx]
+
+
 def to_electron_spectrum(Y, E_MeV):
     """dW/dE [J/GeV] -> dN/dE [electrons/MeV] and charge [pC] in the spectrometer window."""
     EJ = np.asarray(E_MeV) * 1e6 * E_CHARGE
@@ -158,3 +222,86 @@ def to_electron_spectrum(Y, E_MeV):
     dNdE = dNdE_perGeV / 1e3
     Q_pC = np.trapezoid(dNdE_perGeV, np.asarray(E_MeV) / 1e3, axis=-1) * E_CHARGE * 1e12
     return dNdE, Q_pC
+
+
+# ---------------------------------------------------------------- peak-aware model
+class PeakBeamModel(_CalibratedMixin):
+    """dW/dE = W * (continuum(E) + Gaussian peak(A, mu, sigma)), renormalised.
+
+    W, peak height (log A), position mu and width (log sigma) each come from a bagged LightGBM ensemble;
+    the continuum (spectrum minus fitted peak) from 10 PCA coefficients. All ensembles share the same
+    bags, so out-of-bag residuals of every part are paired by training shot and drawn together.
+    """
+
+    def __init__(self, E_MeV, n_members=20, seed=0, n_pc=10):
+        self.E = np.asarray(E_MeV)
+        self.seed, self.n_members = seed, n_members
+        self.energy = EnergyEnsemble(n_members=n_members, seed=seed)
+        self.peak = [EnergyEnsemble(n_members=n_members, seed=seed) for _ in range(3)]
+        self.cont = BaggedSpectrumModel("lgbm", n_members=n_members, n_pc=n_pc, seed=seed, frac=0.8)
+
+    def fit(self, X, Y):
+        from mlsfqed.beam_model.peaks import fit_peaks, gaussian
+        E = self.E
+        W = beam_energy(Y, E)
+        S = Y / W[:, None]
+        P = fit_peaks(S, E)
+        ok = ~np.isnan(P[:, 0])
+        X, Y, S, W, P = X[ok], Y[ok], S[ok], W[ok], P[ok]
+        self.n_dropped = int((~ok).sum())
+        T = np.column_stack([np.log(P[:, 0]), P[:, 1], np.log(P[:, 2])])
+        self.energy.fit(X, np.log(W))
+        for k in range(3):
+            self.peak[k].fit(X, T[:, k])
+        C = S - gaussian(E, P[:, 0], P[:, 1], P[:, 2])
+        self.cont.fit(X, C)
+        Pc = np.stack([np.column_stack([r.predict(X) for r in m]) for m in self.cont.members])
+        oob = ~self.cont.inbag
+        has = oob.sum(0) > 1
+        true_c = self.cont.csc.transform(self.cont.pca.transform(C))
+        mean_c = np.full_like(true_c, np.nan)
+        for i in np.flatnonzero(has):
+            mean_c[i] = Pc[oob[:, i], i].mean(0)
+        both = has & self.energy.has_oob & np.all([p.has_oob for p in self.peak], 0)
+        self._both, self._oob_cont_mean, self.Y_train = both, mean_c, Y
+        self.res_W = self.energy.scores_all[both]
+        self.res_P = np.column_stack([p.scores_all[both] for p in self.peak])
+        self.res_C = (true_c - mean_c)[both]
+        self.peak_fits = P
+        return self
+
+    def _assemble(self, logW, T, Cs):
+        from mlsfqed.beam_model.peaks import gaussian
+        lead = Cs.shape[:-1]
+        C = self.cont.pca.inverse_transform(self.cont.csc.inverse_transform(Cs.reshape(-1, Cs.shape[-1])))
+        C = C.reshape(*lead, -1)
+        S = C + gaussian(self.E, np.exp(T[..., 0]), T[..., 1], np.exp(T[..., 2]))
+        S = np.clip(S, 0, None)
+        S = S / beam_energy(S, self.E)[..., None]
+        return S * np.exp(logW)[..., None]
+
+    def sample(self, X, n_samples=100, seed=0):
+        rng = np.random.default_rng(seed)
+        muW, sdW = self.energy.predict(X)
+        mp = [p.predict(X) for p in self.peak]
+        Cm = np.mean([np.column_stack([r.predict(X) for r in m]) for m in self.cont.members], 0)
+        j = rng.integers(len(self.res_W), size=(len(X), n_samples))
+        logW = muW[:, None] + self.res_W[j] * sdW[:, None]
+        T = np.stack([mp[k][0][:, None] + self.res_P[j, k] * mp[k][1][:, None] for k in range(3)], -1)
+        return self._assemble(logW, T, Cm[:, None, :] + self.res_C[j])
+
+    def predict(self, X, n_samples=200, seed=0):
+        """Mean of the predictive distribution (smooths the peak over its position uncertainty)."""
+        Y = self.sample(X, n_samples, seed).mean(1)
+        return Y, beam_energy(Y, self.E)
+
+    def _oob_train_samples(self, n_samples, rng):
+        idx = np.flatnonzero(self._both)
+        out = np.empty((len(idx), n_samples, len(self.E)))
+        for r, i in enumerate(idx):
+            j = _draw_other(rng, len(idx), r, n_samples)
+            logW = self.energy.oob_mu[i] + self.res_W[j] * self.energy.oob_sd_used[i]
+            T = np.stack([self.peak[k].oob_mu[i] + self.res_P[j, k] * self.peak[k].oob_sd_used[i]
+                          for k in range(3)], -1)
+            out[r] = self._assemble(logW, T, self._oob_cont_mean[i][None, :] + self.res_C[j])
+        return out, self.Y_train[idx]

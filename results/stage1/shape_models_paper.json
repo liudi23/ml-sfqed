@@ -1,0 +1,73 @@
+{
+  "split": "paper",
+  "n_train": 570,
+  "n_test": 75,
+  "pca": {
+    "MSE": 0.04999481812265761,
+    "beam_energy_rel_rms": 0.12386173288578707,
+    "coverage90_all_bins": 0.8564,
+    "coverage90_on_beam": 0.8829150356896155,
+    "CRPS_per_bin": 0.09249301173878556,
+    "coverage90_305-600": 0.917037037037037,
+    "coverage90_600-800": 0.8481481481481481,
+    "coverage90_800-1000 (peak)": 0.8854054054054054,
+    "coverage90_1000-1400": 0.8009132420091324,
+    "peak_height_measured_mean": 2.2944355033431107,
+    "peak_height_samples_mean": 2.0291115337487877,
+    "peak_height_point_pred_mean": 1.704768177697306
+  },
+  "pca+cal": {
+    "MSE": 0.05003943895231253,
+    "beam_energy_rel_rms": 0.12406894778684655,
+    "coverage90_all_bins": 0.9078666666666667,
+    "coverage90_on_beam": 0.9149205618236242,
+    "CRPS_per_bin": 0.09247047916327177,
+    "coverage90_305-600": 0.9323456790123457,
+    "coverage90_600-800": 0.9096296296296297,
+    "coverage90_800-1000 (peak)": 0.9095495495495496,
+    "coverage90_1000-1400": 0.8880365296803653,
+    "peak_height_measured_mean": 2.2944355033431107,
+    "peak_height_samples_mean": 2.0771530631415565,
+    "peak_height_point_pred_mean": 1.703140390199054
+  },
+  "pca_k_bins": {
+    "min": 0.9007379380512933,
+    "median": 1.0842995909848572,
+    "max": 1.656349757571546
+  },
+  "pca_seconds": 21.4,
+  "peak": {
+    "MSE": 0.04749157492321381,
+    "beam_energy_rel_rms": 0.12386173288578708,
+    "coverage90_all_bins": 0.884,
+    "coverage90_on_beam": 0.9218282293345613,
+    "CRPS_per_bin": 0.0867012990083371,
+    "coverage90_305-600": 0.9298765432098766,
+    "coverage90_600-800": 0.8985185185185185,
+    "coverage90_800-1000 (peak)": 0.9459459459459459,
+    "coverage90_1000-1400": 0.8115068493150684,
+    "peak_height_measured_mean": 2.2944355033431107,
+    "peak_height_samples_mean": 2.253378418808524,
+    "peak_height_point_pred_mean": 1.7322623823284975
+  },
+  "peak+cal": {
+    "MSE": 0.04756346444884227,
+    "beam_energy_rel_rms": 0.12384632142175192,
+    "coverage90_all_bins": 0.9204,
+    "coverage90_on_beam": 0.9295417913884412,
+    "CRPS_per_bin": 0.08671526299086073,
+    "coverage90_305-600": 0.9419753086419753,
+    "coverage90_600-800": 0.9122222222222223,
+    "coverage90_800-1000 (peak)": 0.9484684684684684,
+    "coverage90_1000-1400": 0.8942465753424658,
+    "peak_height_measured_mean": 2.2944355033431107,
+    "peak_height_samples_mean": 2.260605684856195,
+    "peak_height_point_pred_mean": 1.7305411345126962
+  },
+  "peak_k_bins": {
+    "min": 0.8684602810597613,
+    "median": 1.0498715562950447,
+    "max": 1.5523825502368236
+  },
+  "peak_seconds": 30.3
+}

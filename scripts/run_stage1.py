@@ -25,7 +25,7 @@ from mlsfqed.beam_model.stage1 import (  # noqa: E402
     BaggedSpectrumModel, Featuriser, beam_energy, crps_ensemble, interval_from_oob,
     lgbm_beam_energy_shap, ridge_predict,
 )
-from mlsfqed.beam_model.twopart import RawFeaturiser, TwoPartBeamModel  # noqa: E402
+from mlsfqed.beam_model.twopart import PeakBeamModel, RawFeaturiser, TwoPartBeamModel  # noqa: E402
 from mlsfqed.data.gemini import load_all, physical_spectra, time_ordered_split  # noqa: E402
 
 PAPER = {"ensemble_MSE": 0.057, "single_model_MSE": 0.073, "naive_MSE": 0.106,
@@ -90,6 +90,21 @@ def evaluate(name, d, tr, te, args):
     s["fit_seconds"] = round(time.time() - t0, 1)
     res["two_part"] = s
     preds["two_part"] = (samp.transpose(1, 0, 2), Wp, (hi - lo) / 2 / 1.645)
+    # peak model: explicit peak position/height/width + continuum, per-bin calibrated band
+    t0 = time.time()
+    pk = PeakBeamModel(E, n_members=args.members, seed=args.seed).fit(Rtr, Ytr).calibrate()
+    samp = pk.sample_calibrated(Rte, n_samples=200, seed=args.seed)
+    s = score(samp.mean(1))
+    _, lo, hi = pk.energy.interval(Rte, 0.9)
+    Wp = beam_energy(samp.mean(1), E)
+    s["calibrated_90pc_coverage"] = float(np.mean((Wte >= lo) & (Wte <= hi)))
+    s["calibrated_mean_interval_halfwidth_rel"] = float(np.mean((hi - lo) / 2 / Wp))
+    s["CRPS_beam_energy_sampler_J"] = float(crps_ensemble(beam_energy(samp, E).T, Wte).mean())
+    b5, b95 = np.percentile(samp, [5, 95], axis=1)
+    s["spectral_band90_coverage"] = float(np.mean((Yte >= b5) & (Yte <= b95)))
+    s["fit_seconds"] = round(time.time() - t0, 1)
+    res["peak_model"] = s
+    preds["peak_model"] = (samp.transpose(1, 0, 2), Wp, (hi - lo) / 2 / 1.645)
     shap = lgbm_beam_energy_shap(np.vstack([Xtr]), beam_energy(Ytr, E), feat.names(), seed=args.seed)
     res["beam_energy_shap_top"] = shap[:8]
     return res, preds, Yte, Wte
@@ -128,13 +143,13 @@ def plots(name, d, te, preds, Yte, Wte):
                          "axes.spines.top": False, "axes.spines.right": False, "figure.facecolor": surf,
                          "axes.facecolor": surf, "font.size": 9, "lines.linewidth": 2})
     E = d["E_MeV"]
-    P, Wm, sd = preds["two_part"]
+    P, Wm, sd = preds["peak_model"]
     # 1) predicted vs measured beam energy with calibrated 90% intervals
     fig, ax = plt.subplots(figsize=(4.2, 4))
     lo, hi = min(Wte.min(), Wm.min()) * 0.9, max(Wte.max(), Wm.max()) * 1.1
     ax.plot([lo, hi], [lo, hi], color=ink2, lw=1, ls="--", label="perfect prediction")
     ax.errorbar(Wte, Wm, yerr=1.645 * sd, fmt="o", ms=4, color=blue, ecolor=blue, elinewidth=0.8,
-                alpha=0.8, mec=surf, mew=0.8, label="two-part model, 90% interval")
+                alpha=0.8, mec=surf, mew=0.8, label="peak model, 90% interval")
     ax.set(xlim=(lo, hi), ylim=(lo, hi), xlabel="measured beam energy [J]", ylabel="predicted beam energy [J]",
            title=f"Beam energy, {name} split")
     ax.legend(frameon=False, fontsize=8, loc="upper left")
@@ -145,7 +160,7 @@ def plots(name, d, te, preds, Yte, Wte):
     fig, axs = plt.subplots(2, 3, figsize=(8, 4.2), sharex=True, sharey=True)
     for ax, i in zip(axs.flat, pick):
         lo_b, hi_b = np.percentile(P[:, i], [5, 95], axis=0)
-        ax.fill_between(E, lo_b, hi_b, color=blue, alpha=0.2, lw=0, label="sampler 5–95%")
+        ax.fill_between(E, lo_b, hi_b, color=blue, alpha=0.2, lw=0, label="sampler 5–95% (calibrated)")
         ax.plot(E, np.median(P[:, i], 0), color=blue, label="sampler median")
         ax.plot(E, Yte[i], color=ink, lw=1.2, label="measured")
         ax.set_xlim(300, 1200)
@@ -188,7 +203,7 @@ def main():
     rows = ["| split | model | MSE | beam-energy rel. RMS | 90% coverage (calibrated) |", "|---|---|---|---|---|"]
     for name in splits:
         r = results[name]
-        for m in ("naive_mean", "ridge_pca", "lgbm_ensemble", "mlp_ensemble", "two_part"):
+        for m in ("naive_mean", "ridge_pca", "lgbm_ensemble", "mlp_ensemble", "two_part", "peak_model"):
             cov = f"{r[m]['calibrated_90pc_coverage']:.2f}" if "calibrated_90pc_coverage" in r[m] else "–"
             rows.append(f"| {name} | {m} | {r[m]['MSE']:.4f} | {r[m]['beam_energy_rel_rms']:.3f} | {cov} |")
     rows.append(f"| paper | Streeter et al. VNN ensemble | {PAPER['ensemble_MSE']} | {PAPER['beam_energy_rel_rms']} | – |")
