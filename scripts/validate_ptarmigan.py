@@ -7,8 +7,12 @@ A  classical RR (LMA classical rate + Landau-Lifshitz) vs the analytic plane-wav
 B  quantum RR: LMA vs LCFA vs Gaunt-corrected classical; quantum/LL suppression; stochastic spread
 C  weak-field Compton: first-harmonic edge, a0^2 yield scaling, radiated energy vs LL x Klein-Nishina
 """
+import glob
+import re
+
+import numpy as np
 from scipy.integrate import quad
-import numpy as np, re, glob
+
 alpha=1/137.035999; me=0.51099895e6; lam=0.8e-6; c=299792458; hbar_eVs=6.582119569e-16
 w0=2*np.pi*c/lam; hw=hbar_eVs*w0; tau=30e-15
 g0=1000e6/me; u0=g0*(1+np.sqrt(1-1/g0**2))          # u- = gamma(1+beta), lightfront momentum / m
@@ -17,7 +21,9 @@ def gamma_f(a0):
     h=1+(2/3)*alpha*(u0*hw/me)*(a0**2/2)*Ig2           # LP: <cos^2> = 1/2
     u=u0/h; return (u+1/u)/2
 def read(f,key):
-    m=re.search(re.escape(key)+r' = ([0-9.eE+-]+)',open(f).read()); return float(m.group(1))
+    with open(f) as fh:
+        m=re.search(re.escape(key)+r' = ([0-9.eE+-]+)',fh.read())
+    return float(m.group(1))
 print('a0  ptarmigan_gamma  LL_analytic  rel_diff')
 for f in sorted(glob.glob('A_a0_*_stats.txt'),key=lambda s: float(s.split('_')[2])):
     a0=float(f.split('_')[2]); gp=read(f,'electron: mean gamma'); ga=gamma_f(a0)

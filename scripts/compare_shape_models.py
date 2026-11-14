@@ -20,10 +20,9 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from mlsfqed.beam_model.peaks import fit_peaks  # noqa: E402
-from mlsfqed.beam_model.stage1 import beam_energy  # noqa: E402
-from mlsfqed.beam_model.twopart import PeakBeamModel, RawFeaturiser, TwoPartBeamModel  # noqa: E402
-from mlsfqed.data.gemini import load_all, physical_spectra, time_ordered_split  # noqa: E402
+from mlsfqed.beam_model.stage1 import beam_energy
+from mlsfqed.beam_model.twopart import PeakBeamModel, RawFeaturiser, TwoPartBeamModel
+from mlsfqed.data.gemini import load_all, physical_spectra, time_ordered_split
 
 OUT = ROOT / "results" / "stage1"
 REGIONS = {"305-600": (305, 600), "600-800": (600, 800), "800-1000 (peak)": (800, 1000), "1000-1400": (1000, 1401)}

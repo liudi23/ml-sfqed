@@ -23,9 +23,11 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from mlsfqed.beam_model.stage1 import beam_energy  # noqa: E402
-from mlsfqed.beam_model.twopart import PeakBeamModel, RawFeaturiser, to_electron_spectrum  # noqa: E402
-from mlsfqed.data.gemini import load_all, physical_spectra, time_ordered_split  # noqa: E402
+from run_stage1 import check_fits
+
+from mlsfqed.beam_model.stage1 import beam_energy
+from mlsfqed.beam_model.twopart import PeakBeamModel, RawFeaturiser, to_electron_spectrum
+from mlsfqed.data.gemini import load_all, physical_spectra, time_ordered_split
 
 OUT = ROOT / "results" / "stage1"
 
@@ -81,7 +83,7 @@ def plot(name, d, samp, Yte, Wte, out):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    ink, ink2, grid, surf, blue, orange = "#0b0b0b", "#52514e", "#e1e0d9", "#fcfcfb", "#2a78d6", "#eb6834"
+    ink, ink2, grid, surf, blue = "#0b0b0b", "#52514e", "#e1e0d9", "#fcfcfb", "#2a78d6"
     plt.rcParams.update({"axes.edgecolor": ink2, "xtick.color": ink2, "ytick.color": ink2, "axes.grid": True,
                          "grid.color": grid, "axes.spines.top": False, "axes.spines.right": False,
                          "figure.facecolor": surf, "axes.facecolor": surf, "font.size": 9})
@@ -99,7 +101,6 @@ def plot(name, d, samp, Yte, Wte, out):
     axs[1].set(xlabel="PIT of measured beam energy", ylabel="shots", title=f"Calibration (KS {out['W_PIT_KS']:.2f})")
     axs[1].legend(frameon=False, fontsize=8)
     fig.tight_layout()
-    from run_stage1 import check_fits
     check_fits(fig, f"sampler_{name}.png")
     fig.savefig(OUT / f"sampler_{name}.png", dpi=150)
     plt.close(fig)

@@ -14,19 +14,26 @@ import argparse
 import json
 import sys
 import time
+from math import pi, sqrt
 from pathlib import Path
 
 import numpy as np
+from scipy.stats import norm
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from mlsfqed.beam_model.stage1 import (  # noqa: E402
-    BaggedSpectrumModel, Featuriser, beam_energy, crps_ensemble, interval_from_oob,
-    lgbm_beam_energy_shap, ridge_predict,
+from mlsfqed.beam_model.stage1 import (
+    BaggedSpectrumModel,
+    Featuriser,
+    beam_energy,
+    crps_ensemble,
+    interval_from_oob,
+    lgbm_beam_energy_shap,
+    ridge_predict,
 )
-from mlsfqed.beam_model.twopart import PeakBeamModel, RawFeaturiser, TwoPartBeamModel  # noqa: E402
-from mlsfqed.data.gemini import load_all, physical_spectra, time_ordered_split  # noqa: E402
+from mlsfqed.beam_model.twopart import PeakBeamModel, RawFeaturiser, TwoPartBeamModel
+from mlsfqed.data.gemini import load_all, physical_spectra, time_ordered_split
 
 PAPER = {"ensemble_MSE": 0.057, "single_model_MSE": 0.073, "naive_MSE": 0.106,
          "beam_energy_rel_rms": 0.124, "beam_energy_rel_spread": 0.30, "autoencoder_MSE": 0.011}
@@ -68,8 +75,6 @@ def evaluate(name, d, tr, te, args):
         s["calibrated_mean_interval_halfwidth_rel"] = float(np.mean(1.645 * sd_cal / Wm))
         s["CRPS_beam_energy_raw_J"] = float(crps_ensemble(Wm_all, Wte).mean())
         z = (Wte - Wm) / sd_cal
-        from math import pi, sqrt
-        from scipy.stats import norm
         s["CRPS_beam_energy_calibrated_J"] = float(np.mean(sd_cal * (z * (2 * norm.cdf(z) - 1)
                                                                     + 2 * norm.pdf(z) - 1 / sqrt(pi))))
         s["fit_seconds"] = round(time.time() - t0, 1)
@@ -137,7 +142,7 @@ def plots(name, d, te, preds, Yte, Wte):
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     ink, ink2, grid, surf = "#0b0b0b", "#52514e", "#e1e0d9", "#fcfcfb"
-    blue, orange = "#2a78d6", "#eb6834"
+    blue = "#2a78d6"
     plt.rcParams.update({"axes.edgecolor": ink2, "axes.labelcolor": ink, "xtick.color": ink2,
                          "ytick.color": ink2, "axes.grid": True, "grid.color": grid, "grid.linewidth": 0.6,
                          "axes.spines.top": False, "axes.spines.right": False, "figure.facecolor": surf,

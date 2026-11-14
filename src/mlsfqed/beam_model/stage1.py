@@ -109,7 +109,6 @@ def beam_energy(Y, E_MeV):
 
 def interval_from_oob(model, E_MeV, alpha=0.1):
     """Calibrated scale factor q so that mean +/- q*sd covers (1-alpha) of OOB beam energies."""
-    mean, _ = model.oob_predictions()
     P = model.predict_members(model.X_train)
     oob = ~model.inbag
     W = beam_energy(P, E_MeV)
@@ -148,5 +147,13 @@ def lgbm_beam_energy_shap(X, w, names, seed=0):
     return [(names[i], float(imp[i])) for i in order]
 
 
-__all__ = ["Featuriser", "BaggedSpectrumModel", "beam_energy", "interval_from_oob", "ridge_predict",
-           "crps_ensemble", "lgbm_beam_energy_shap", "physical_spectra"]
+__all__ = [
+    "BaggedSpectrumModel",
+    "Featuriser",
+    "beam_energy",
+    "crps_ensemble",
+    "interval_from_oob",
+    "lgbm_beam_energy_shap",
+    "physical_spectra",
+    "ridge_predict",
+]
