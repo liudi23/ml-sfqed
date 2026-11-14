@@ -18,38 +18,38 @@
       "beam_energy_rel_rms": 0.3326464872811013
     },
     "ridge_pca": {
-      "MSE": 0.06363885619812229,
-      "beam_energy_rel_rms": 0.15661842121051897
+      "MSE": 0.06363885619317619,
+      "beam_energy_rel_rms": 0.15661842118481384
     },
     "lgbm_ensemble": {
-      "MSE": 0.05570835095448225,
-      "beam_energy_rel_rms": 0.1488743401731103,
-      "single_member_MSE_mean": 0.06195268905519209,
+      "MSE": 0.05570833722753957,
+      "beam_energy_rel_rms": 0.14887385900698477,
+      "single_member_MSE_mean": 0.061952632030659,
       "raw_90pc_coverage": 0.49333333333333335,
       "calibrated_90pc_coverage": 0.88,
-      "calibrated_mean_interval_halfwidth_rel": 0.25165383580866785,
-      "CRPS_beam_energy_raw_J": 0.05830950326612875,
-      "CRPS_beam_energy_calibrated_J": 0.05144576562762238,
-      "fit_seconds": 7.8
+      "calibrated_mean_interval_halfwidth_rel": 0.251644177970652,
+      "CRPS_beam_energy_raw_J": 0.05830964122450323,
+      "CRPS_beam_energy_calibrated_J": 0.05144561324333344,
+      "fit_seconds": 6.7
     },
     "mlp_ensemble": {
-      "MSE": 0.06172204771517123,
-      "beam_energy_rel_rms": 0.16900620725694765,
-      "single_member_MSE_mean": 0.07211712671408667,
+      "MSE": 0.06172204771945583,
+      "beam_energy_rel_rms": 0.16900620724155277,
+      "single_member_MSE_mean": 0.07211712672035786,
       "raw_90pc_coverage": 0.68,
       "calibrated_90pc_coverage": 0.88,
-      "calibrated_mean_interval_halfwidth_rel": 0.29480549079227597,
-      "CRPS_beam_energy_raw_J": 0.06369421152845715,
-      "CRPS_beam_energy_calibrated_J": 0.060057400492929805,
-      "fit_seconds": 0.8
+      "calibrated_mean_interval_halfwidth_rel": 0.29480549068880657,
+      "CRPS_beam_energy_raw_J": 0.06369421152442224,
+      "CRPS_beam_energy_calibrated_J": 0.06005740049400301,
+      "fit_seconds": 0.7
     },
     "two_part": {
-      "MSE": 0.04993548600253663,
-      "beam_energy_rel_rms": 0.12336333823104027,
+      "MSE": 0.04993548600273119,
+      "beam_energy_rel_rms": 0.12336333823104023,
       "calibrated_90pc_coverage": 0.8933333333333333,
       "calibrated_mean_interval_halfwidth_rel": 0.21668737739720934,
-      "CRPS_beam_energy_sampler_J": 0.04615149763347855,
-      "fit_seconds": 26.5
+      "CRPS_beam_energy_sampler_J": 0.04615149763347854,
+      "fit_seconds": 21.3
     },
     "beam_energy_shap_top": [
       [
@@ -95,38 +95,38 @@
       "beam_energy_rel_rms": 0.5898496748066601
     },
     "ridge_pca": {
-      "MSE": 0.05090314883238339,
-      "beam_energy_rel_rms": 0.2678306380764869
+      "MSE": 0.05090314885137564,
+      "beam_energy_rel_rms": 0.2678306381758331
     },
     "lgbm_ensemble": {
-      "MSE": 0.039931981568754236,
-      "beam_energy_rel_rms": 0.18881793127471358,
-      "single_member_MSE_mean": 0.04516517867068397,
+      "MSE": 0.039931981568753355,
+      "beam_energy_rel_rms": 0.18881793127487126,
+      "single_member_MSE_mean": 0.04516517867068307,
       "raw_90pc_coverage": 0.43859649122807015,
       "calibrated_90pc_coverage": 0.9122807017543859,
-      "calibrated_mean_interval_halfwidth_rel": 0.2733141427902533,
-      "CRPS_beam_energy_raw_J": 0.0579627655296678,
-      "CRPS_beam_energy_calibrated_J": 0.049940183798492195,
-      "fit_seconds": 7.6
+      "calibrated_mean_interval_halfwidth_rel": 0.2733141427903083,
+      "CRPS_beam_energy_raw_J": 0.057962765529709616,
+      "CRPS_beam_energy_calibrated_J": 0.04994018379851905,
+      "fit_seconds": 6.7
     },
     "mlp_ensemble": {
-      "MSE": 0.04529514589525145,
-      "beam_energy_rel_rms": 0.27153041785537674,
-      "single_member_MSE_mean": 0.056115632663187386,
+      "MSE": 0.04529514589516539,
+      "beam_energy_rel_rms": 0.2715304178799518,
+      "single_member_MSE_mean": 0.05611563266336291,
       "raw_90pc_coverage": 0.6754385964912281,
       "calibrated_90pc_coverage": 0.9035087719298246,
-      "calibrated_mean_interval_halfwidth_rel": 0.3415278802664522,
-      "CRPS_beam_energy_raw_J": 0.062615485197319,
-      "CRPS_beam_energy_calibrated_J": 0.060332499224278975,
+      "calibrated_mean_interval_halfwidth_rel": 0.341527880366596,
+      "CRPS_beam_energy_raw_J": 0.06261548520228905,
+      "CRPS_beam_energy_calibrated_J": 0.060332499229456334,
       "fit_seconds": 0.7
     },
     "two_part": {
-      "MSE": 0.033423886500217916,
-      "beam_energy_rel_rms": 0.14193544324608792,
+      "MSE": 0.0334238865003963,
+      "beam_energy_rel_rms": 0.14193544324608787,
       "calibrated_90pc_coverage": 0.9035087719298246,
       "calibrated_mean_interval_halfwidth_rel": 0.2359258348633276,
       "CRPS_beam_energy_sampler_J": 0.04148880925597216,
-      "fit_seconds": 25.2
+      "fit_seconds": 20.8
     },
     "beam_energy_shap_top": [
       [

@@ -95,6 +95,28 @@ def evaluate(name, d, tr, te, args):
     return res, preds, Yte, Wte
 
 
+def check_fits(fig, name):
+    """Raise if any drawn text (titles, axis labels, tick labels, legends) falls outside the saved image."""
+    fig.canvas.draw()
+    fb = fig.bbox
+    texts, ticklabels = [], set()
+    for ax in fig.axes:
+        for axis in (ax.xaxis, ax.yaxis):
+            lo, hi = sorted(axis.get_view_interval())
+            for tick in axis.get_major_ticks():
+                ticklabels.add(id(tick.label1))
+                if lo - 1e-9 <= tick.get_loc() <= hi + 1e-9:   # matplotlib only draws ticks inside the view
+                    texts.append(tick.label1)
+    texts += [t for t in fig.findobj(lambda a: hasattr(a, "get_text") and hasattr(a, "get_window_extent"))
+              if id(t) not in ticklabels]
+    for t in texts:
+        if not (t.get_visible() and t.get_text().strip()):
+            continue
+        bb = t.get_window_extent()
+        if bb.x0 < fb.x0 - 1 or bb.x1 > fb.x1 + 1 or bb.y0 < fb.y0 - 1 or bb.y1 > fb.y1 + 1:
+            raise RuntimeError(f"text {t.get_text()!r} is clipped in {name}")
+
+
 def plots(name, d, te, preds, Yte, Wte):
     import matplotlib
     matplotlib.use("Agg")
@@ -116,7 +138,8 @@ def plots(name, d, te, preds, Yte, Wte):
     ax.set(xlim=(lo, hi), ylim=(lo, hi), xlabel="measured beam energy [J]", ylabel="predicted beam energy [J]",
            title=f"Beam energy, {name} split")
     ax.legend(frameon=False, fontsize=8, loc="upper left")
-    fig.tight_layout(); fig.savefig(OUT / f"beam_energy_{name}.png", dpi=150); plt.close(fig)
+    fig.tight_layout(); check_fits(fig, f"beam_energy_{name}.png")
+    fig.savefig(OUT / f"beam_energy_{name}.png", dpi=150); plt.close(fig)
     # 2) example spectra across the beam-energy range
     order = np.argsort(Wte); pick = order[np.linspace(0, len(order) - 1, 6).astype(int)]
     fig, axs = plt.subplots(2, 3, figsize=(8, 4.2), sharex=True, sharey=True)
@@ -126,11 +149,13 @@ def plots(name, d, te, preds, Yte, Wte):
         ax.plot(E, np.median(P[:, i], 0), color=blue, label="sampler median")
         ax.plot(E, Yte[i], color=ink, lw=1.2, label="measured")
         ax.set_xlim(300, 1200)
+        ax.set_xticks([400, 600, 800, 1000, 1200])
     for ax in axs[1]: ax.set_xlabel("E [MeV]")
     for ax in axs[:, 0]: ax.set_ylabel("dW/dE [J/GeV]")
     axs[0, 0].legend(frameon=False, fontsize=7)
     fig.suptitle(f"Test spectra, {name} split (sorted by beam energy)", fontsize=10)
-    fig.tight_layout(); fig.savefig(OUT / f"spectra_{name}.png", dpi=150); plt.close(fig)
+    fig.tight_layout(rect=(0, 0, 0.985, 1)); check_fits(fig, f"spectra_{name}.png")
+    fig.savefig(OUT / f"spectra_{name}.png", dpi=150); plt.close(fig)
 
 
 def plot_shap(shap):
@@ -142,12 +167,7 @@ def plot_shap(shap):
     fig.suptitle("What drives beam energy", fontsize=10, x=0.02, ha="left")
     ax.set_title("time split, training shots", fontsize=8, color="#52514e", loc="left")
     fig.tight_layout()
-    fig.canvas.draw()  # check every text element fits inside the figure
-    fb = fig.bbox
-    for t in [fig._suptitle, ax.title, ax.xaxis.label, *ax.get_yticklabels()]:
-        bb = t.get_window_extent()
-        if bb.x0 < fb.x0 - 1 or bb.x1 > fb.x1 + 1 or bb.y1 > fb.y1 + 1:
-            raise RuntimeError(f"text {t.get_text()!r} is clipped in shap_beam_energy.png")
+    check_fits(fig, "shap_beam_energy.png")
     fig.savefig(OUT / "shap_beam_energy.png", dpi=150); plt.close(fig)
 
 
