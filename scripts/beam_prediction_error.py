@@ -4,7 +4,7 @@ Trains the Stage 1 peak model on runs 05-12, predicts run 13 (time split, never 
 predicted (median of 100 calibrated samples) with the measured P70 and mean energy above 305 MeV.
 The resulting RMSEs are the realistic incoming-beam uncertainties used by infer_los2024.py --beam-unc
 calibrated, and are compared with the spread of Los et al.'s 100 network predictions per shot.
-  python scripts/beam_prediction_error.py      (~30 s)   -> results/inference/beam_prediction_error.json
+  python scripts/beam_prediction_error.py      (~1-2 min)   -> results/inference/beam_prediction_error.json
 """
 
 from __future__ import annotations
@@ -32,7 +32,8 @@ def main():
     tr, te = time_ordered_split(d)
     w = E >= 305
     rf = RawFeaturiser().fit(d, tr)
-    m = PeakBeamModel(E, seed=0).fit(rf.transform(d, tr), Y[tr]).calibrate()
+    # the adopted Stage 1 model: square-root-edge peak, peak position blended with a Gaussian process
+    m = PeakBeamModel(E, seed=0, shape="sqrt_edge", gp_blend=("position",)).fit(rf.transform(d, tr), Y[tr]).calibrate()
     N, _ = to_electron_spectrum(m.sample_calibrated(rf.transform(d, te), 100, 0), E)
     Nt, _ = to_electron_spectrum(Y[te], E)
 
@@ -41,7 +42,7 @@ def main():
 
     P = np.array([[obs(x) for x in s] for s in N])
     T = np.array([obs(x) for x in Nt])
-    res = {"method": "Stage 1 peak model, train runs 05-12, test run 13; median of 100 calibrated samples"}
+    res = {"method": "Stage 1 square-root-edge peak model (GP-blended position), train runs 05-12, test run 13; median of 100 calibrated samples"}
     for j, name in enumerate(("P70", "mean_window_MeV")):
         med = np.median(P[:, :, j], 1)
         lo, hi = np.percentile(P[:, :, j], [5, 95], axis=1)

@@ -6,8 +6,8 @@ Di Liu · November 2026 · code: this repository
 
 A calibrated beam model plus a neural surrogate of Ptarmigan turns a 19,200 CPU-hour Bayesian analysis of a strong-field QED experiment into 42 CPU-seconds per shot. Used on the 10 public collision shots of the 2021 Gemini radiation-reaction campaign, it shows two things:
 
-- **The published per-shot beam uncertainty is about 3× too narrow.** Using the error measured on held-out shots widens the field-strength posteriors by about half and halves the model-comparison Bayes factors.
-- **Spectral broadening favours stochastic quantum radiation reaction.** On every shot the outgoing spectrum is broader than the predicted incoming beam. Only stochastic emission reproduces this; classical and continuous models miss on 8 of 10 shots. The summed log Bayes factor over classical is +18 with realistic beam uncertainty (+8 with the transverse offset also free).
+- **The published per-shot beam uncertainty is about 3× too narrow.** Using the error measured on held-out shots widens the field-strength posteriors by ~46% and cuts the stochastic-vs-classical Bayes factor by ~40%.
+- **Spectral broadening favours stochastic quantum radiation reaction.** On every shot the outgoing spectrum is broader than the predicted incoming beam. Only stochastic emission reproduces this; classical and continuous models miss on 8 of 10 shots. The summed log Bayes factor over classical is +20 with realistic beam uncertainty (+9 with the transverse offset also free).
 
 | Stage | Result |
 | --- | --- |
@@ -101,7 +101,7 @@ P70's lower R² reflects its small spread relative to Monte Carlo noise (the noi
 
 **Recovery test.** On 48 held-out simulated collisions, the 90% interval contains the true a0 in 90% of cases and the true effective a0 in 83%.
 
-**Beam uncertainty.** On held-out Gemini shots the incoming-beam prediction error is 0.29 in P70 and 18.8 MeV in mean energy, and the calibrated beam model's spread matches it (coverage 0.90–0.92). The published network's per-shot spread is ~3× smaller (median 0.11 and 6.4 MeV).
+**Beam uncertainty.** On held-out Gemini shots the incoming-beam prediction error of the adopted Stage 1 model is 0.26 in P70 and 18.1 MeV in mean energy, and its calibrated spread matches it (coverage 0.90–0.92). The published network's per-shot spread is 2.4–2.8× smaller (median 0.11 and 6.4 MeV).
 
 ![Effective a0 per shot](figures/a0_eff.png)
 
@@ -118,9 +118,9 @@ Evidence by Monte Carlo integration over the prior (MC error ≤ 0.035 in log Z)
 | Set-up | Beam uncertainty | Observables | Continuous vs classical | Stochastic vs classical |
 | --- | --- | --- | --- | --- |
 | a0, dz, length | published | mean + P70 | +2.0 | +34.3 |
-| a0, dz, length | measured | mean + P70 | +2.5 | +18.1 |
+| a0, dz, length | measured | mean + P70 | +2.6 | +20.1 |
 | + transverse offset | published | mean + P70 | +0.4 | +14.8 |
-| + transverse offset | measured | mean + P70 | +0.8 | +8.4 |
+| + transverse offset | measured | mean + P70 | +0.8 | +9.2 |
 | a0, dz, length | either | mean only | +0.9 | +1.0 |
 | Los et al. (2024), full spectrum | published | PSIS-LOO | +2.8 | +2.9 |
 
@@ -135,7 +135,7 @@ Summed natural-log Bayes factors over 10 shots. Los et al.'s values are differen
 
 ![P70 on the 10 shots](figures/p70_shots.png)
 
-**Caveat.** Shots 8 and 9 show a 20–30% P70 drop with almost no inferred energy loss, which no model produces. Their loss is uncertain by ~19 MeV, so they are not decisive, but they show that incoming-P70 errors of this size occur. The published spread (0.11) ignores them and inflates the Bayes factors; the measured error (0.29) halves the preference.
+**Caveat.** Shots 8 and 9 show a 20–30% P70 drop with almost no inferred energy loss, which no model produces. Their loss is uncertain by ~19 MeV, so they are not decisive, but they show that incoming-P70 errors of this size occur. The published spread (0.11) ignores them and inflates the Bayes factors; the measured error (0.26) cuts the preference by ~40%.
 
 **Beam chirp.** An energy chirp of ±0.2 or ±0.5 shifts mean energy loss by ≤0.4 MeV and P70 by ≤0.03, within Monte Carlo noise.
 

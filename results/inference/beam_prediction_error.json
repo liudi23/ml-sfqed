@@ -1,8 +1,8 @@
 {
-  "method": "Stage 1 peak model, train runs 05-12, test run 13; median of 100 calibrated samples",
+  "method": "Stage 1 square-root-edge peak model (GP-blended position), train runs 05-12, test run 13; median of 100 calibrated samples",
   "P70": {
-    "rmse": 0.28618501118969475,
-    "our_spread_median": 0.302694938547063,
+    "rmse": 0.25879374575751146,
+    "our_spread_median": 0.29533592366497996,
     "our_coverage90": 0.9035087719298246,
     "los_network_spread_per_shot": [
       0.1064,
@@ -18,8 +18,8 @@
     ]
   },
   "mean_window_MeV": {
-    "rmse": 18.830422927719948,
-    "our_spread_median": 21.13266529146766,
+    "rmse": 18.140932216677943,
+    "our_spread_median": 20.890786844677073,
     "our_coverage90": 0.9210526315789473,
     "los_network_spread_per_shot": [
       6.9373,

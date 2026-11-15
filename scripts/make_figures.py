@@ -191,7 +191,7 @@ def bayes_factors():
     ax.set_xlabel("Summed log Bayes factor vs classical, 10 shots (mean energy + P70)")
     ax.legend(handles=[plt.Rectangle((0, 0), 1, 1, color=COL[m]) for m in ("stochastic", "continuous")],
               labels=["Stochastic vs classical", "Continuous vs classical"], loc="lower right", fontsize=8.5)
-    title(fig, "The stochastic preference survives realistic uncertainty, at half the strength")
+    title(fig, "The stochastic preference survives realistic uncertainty, about 40% weaker")
     save(fig, "bayes_factors.png")
 
 
@@ -212,7 +212,7 @@ def a0_eff():
     ax.grid(axis="x", visible=False)
     ax.legend(handles=[plt.Line2D([], [], color=COL["incoming"], lw=2.4, marker="o"), plt.Line2D([], [], color=COL["stochastic"], lw=2.4, marker="o")],
               labels=["Published incoming-beam spread", "Measured incoming-beam error"], loc="upper right", fontsize=8.5)
-    title(fig, "Realistic beam uncertainty widens every field-strength estimate by about half")
+    title(fig, "Realistic beam uncertainty widens every field-strength estimate by ~46%")
     save(fig, "a0_eff.png")
 
 

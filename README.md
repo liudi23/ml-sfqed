@@ -15,8 +15,8 @@ An end-to-end pipeline from real laser–plasma data to Bayesian model compariso
 | | |
 | --- | --- |
 | **~1.6 million× faster inference** | A full Bayesian fit of one collision shot takes **42 CPU-seconds**, against ~19,200 CPU-hours with direct simulation (Los et al. 2024). |
-| **Published beam uncertainty is ~3× too narrow** | The incoming-beam error measured on held-out shots (P70 0.29, mean energy 18.8 MeV) is ~3× the published per-shot spread (0.11, 6.4 MeV). Using it widens the field-strength estimates by about half and halves the Bayes factors. |
-| **Spectral broadening favours stochastic quantum radiation reaction** | On all 10 shots the outgoing spectrum is broader than the incoming one. Only stochastic emission reproduces this; classical and continuous models miss on 8 of 10. Summed log Bayes factor over classical: **+18** with realistic beam uncertainty. |
+| **Published beam uncertainty is ~3× too narrow** | The incoming-beam error measured on held-out shots (P70 0.26, mean energy 18.1 MeV) is 2.4–2.8× the published per-shot spread (0.11, 6.4 MeV). Using it widens the field-strength estimates by ~46% and cuts the stochastic-vs-classical Bayes factor by ~40%. |
+| **Spectral broadening favours stochastic quantum radiation reaction** | On all 10 shots the outgoing spectrum is broader than the incoming one. Only stochastic emission reproduces this; classical and continuous models miss on 8 of 10. Summed log Bayes factor over classical: **+20** with realistic beam uncertainty (+34 with the published spread). |
 | **Better beam prediction, with honest uncertainty** | Spectral MSE **0.045 vs 0.057** for the published network ensemble (22% lower), with a physics-based peak shape; calibrated 90% intervals cover 89–90% of held-out shots (raw ensembles: 44–68%). |
 | **Accurate surrogate** | MLP ensemble reproduces Ptarmigan to R² 0.98 (energy loss) at ~2× its Monte Carlo noise; ~18,000× faster per call, ~4×10⁶× batched. |
 
@@ -46,7 +46,7 @@ A dedicated diagnostic (`scripts/diagnose_p70.py`) rules out a definition artefa
 
 ![Summed log Bayes factors](docs/figures/bayes_factors.png)
 
-The stochastic preference halves once the measured beam error replaces the published spread, and halves again when the transverse offset is also free, a parameter the original analysis had to fix for cost. Energy loss alone carries no model information, because a free a0 absorbs the difference.
+The stochastic preference drops by ~40% once the measured beam error replaces the published spread (+34 → +20), and roughly halves again when the transverse offset is also free (+9), a parameter the original analysis had to fix for cost. Energy loss alone carries no model information, because a free a0 absorbs the difference.
 
 ### Realistic beam uncertainty widens every field-strength estimate
 
