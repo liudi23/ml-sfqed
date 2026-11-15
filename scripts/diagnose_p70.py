@@ -105,7 +105,7 @@ def part_a():
     out["A2_same_spectrum_hist_over_fine"] = {"n": len(r), "median": float(np.median(r)),
                                               "p5": float(np.percentile(r, 5)), "p95": float(np.percentile(r, 95))}
     # A2b: scan runs that barely interacted: simulated P70 vs P70 of the incoming beam (data pipeline)
-    X, Y, meta, _, _ = build(STAGE2)
+    _, Y, meta, _, _ = build(STAGE2)
     low = np.flatnonzero(Y.loss_window_MeV.abs().values < 1.0)
     rr = []
     for i in low:
@@ -181,7 +181,9 @@ def _task(args):
              "radius_um": 0.7, "div_mrad": 2.0, "dx_um": 0.0, "dy_um": 0.0, "charge_pC": float(m["pool_Q_median_pC"])}
         o, Ne, _ = run_one(p, b / Ep, Ep, n_el, seed=1000 + k, model=mdl)
         if o["ok"]:
-            sig = lambda e: np.interp(e, Er, dEr)                        # noqa: E731
+            def sig(e):
+                return np.interp(e, Er, dEr)
+
             post1 = ShotPosterior(m, b[None, :], obs["mean_window_MeV"], obs["P70"], meas_sd, free=SETUPS["los"])
             sp, _ = post1.predict(np.array([[th["a0"], th["dz_um"], th["length_um"]]]))
             out["ptarmigan"] = {"P70": sim_obs(Ne)["P70"], "P70_smeared": sim_obs(smear(Ne, sig))["P70"],
@@ -257,7 +259,7 @@ def main():
                                                   for r in res if "Ne" in r.get("ptarmigan", {})})
         try:
             figure(res, data, OUT / "spectra.png")
-        except Exception as e:                                       # never lose the run to a plotting error
+        except (RuntimeError, ValueError, OSError) as e:             # a plotting error must not lose the run
             print(f"figure failed ({e}); results are saved")
 
     # ---------------- report
