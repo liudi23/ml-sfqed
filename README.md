@@ -73,6 +73,10 @@ Ptarmigan v1.6.1 reproduces analytic limits to ≤1%: classical Landau–Lifshit
 
 P70's lower R² reflects its small spread relative to Monte Carlo noise (ceiling ~0.95), not a worse fit.
 
+![Surrogate vs Ptarmigan](docs/figures/surrogate_accuracy.png)
+
+Top: collisions whose incoming beams the surrogate never saw. Bottom: trained on a0 ≤ 16.5 and tested above, with the LightGBM baseline in grey. In energy loss the trees flatten off at large loss and the MLP does not. P70 scatters more, at about twice its Monte Carlo noise, and its largest values (above ~2.6) are predicted too low. The measured collision shots sit at 1.3–2.0, where the average offset is only +0.03.
+
 ### Stage 4: inference and model comparison on the 10 collision shots
 
 Each shot is fitted to its outgoing mean energy and P70 with the incoming beam marginalised over 50 predicted spectra, in **42 CPU-seconds** (emcee, surrogate in the likelihood). On 48 simulated shots with known answers the 90% intervals contain the true a0 90% of the time; on 90 simulated shots the model comparison identifies stochastic data 93% of the time.

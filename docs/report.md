@@ -148,6 +148,10 @@ Test accuracy of the adopted MLP ensemble:
 
 P70's lower R² reflects its small spread relative to Monte Carlo noise (the noise ceiling is ~0.95), not a worse fit.
 
+![Surrogate vs Ptarmigan](figures/surrogate_accuracy.png)
+
+Top: collisions whose incoming beams the surrogate never saw. Bottom: trained on a0 ≤ 16.5 and tested above, with the LightGBM baseline in grey. In energy loss the trees flatten off at large loss and the MLP does not. P70 scatters more, at about twice its Monte Carlo noise, and its largest values (above ~2.6) are predicted too low. The measured collision shots sit at 1.3–2.0, where the average offset is only +0.03.
+
 **Why an MLP and not trees.** A LightGBM model per observable (800 trees) is the baseline. On the same test set it is slightly worse everywhere (R² 0.972 vs 0.979 for energy loss above 305 MeV, 0.75 vs 0.79 for P70, 0.978 vs 0.983 for critical energy), and much worse when extrapolating: holding out the band a0 > 16.5 raises the energy-loss RMSE to 4.6 MeV for the MLP and 8.8 MeV for LightGBM, because trees are piecewise constant. The MLP is also smooth in the parameters, which the MCMC sampler needs. Speed against Ptarmigan: ~18,000× per single call, ~4×10⁶× batched (LightGBM ~27,000× batched).
 
 **Spectrum surrogate** (not yet used in inference): the same MLP ensemble predicting 12 PCA coefficients of the square-root electron spectrum reproduces whole outgoing spectra to 12% relative L1 error (mean-energy error 5.2 MeV). It is the starting point for the full-spectrum likelihood. Photon observables are still data-limited (error ∝ N^-0.65); electron observables have saturated near the noise floor.

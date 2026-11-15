@@ -3,8 +3,8 @@
   python scripts/stage3_surrogate.py                 # all splits, full models
   python scripts/stage3_surrogate.py --quick         # small models, for a smoke test
   python scripts/stage3_surrogate.py --split beam    # one split: random | beam | a0
-  python scripts/stage3_surrogate.py --predictions   # beam split, MLP only: per-run test predictions
-                                                     # -> results/stage3/predictions_beam.json (for the figures)
+  python scripts/stage3_surrogate.py --predictions   # per-run test predictions (MLP + LightGBM) for the beam
+                                                     # and a0 splits -> results/stage3/predictions_<split>.json
 
 Splits:
   random  20% of runs held out at random
@@ -131,10 +131,10 @@ def run_split(name, X, Y, meta, Ne, Ng, quick):
     return res
 
 
-def save_predictions(X, Y, meta, cols=("loss_window_MeV", "e_P70")):
-    """Same split, calibration set and seeds as run_split("beam"); writes the MLP ensemble's test predictions
-    with calibrated 90% half-widths next to Ptarmigan's values."""
-    tr_all, te = split_masks("beam", X, meta)
+def save_predictions(X, Y, meta, split="beam", cols=("loss_window_MeV", "e_P70")):
+    """Same split, calibration set and seeds as run_split(split); writes the MLP ensemble's test predictions
+    with calibrated 90% half-widths, and the LightGBM baseline's, next to Ptarmigan's values."""
+    tr_all, te = split_masks(split, X, meta)
     rng = np.random.default_rng(1)
     shots = meta.beam_shot_index[tr_all].unique()
     cal_shots = rng.choice(shots, int(0.15 * len(shots)), replace=False)
@@ -145,14 +145,17 @@ def save_predictions(X, Y, meta, cols=("loss_window_MeV", "e_P70")):
     Pc, Sc = mlp.predict(X[cal])
     factors = conformal_factors(Pc, Y[cal].values, interval_scale(Pc, Y[cal].values, allc, Sc))
     Pm, Sm = mlp.predict(X[te])
-    out = {"split": "beam", "n_test": int(te.sum())}
+    Pt = TreeSurrogate().fit(X[tr], Y[tr]).predict(X[te])
+    out = {"split": split, "n_test": int(te.sum())}
     for c in cols:
         j = allc.index(c)
         s = interval_scale(Pm, Y[te].values, allc, Sm)[:, j]
         out[c] = {"ptarmigan": Y[te][c].round(4).tolist(), "surrogate": Pm[:, j].round(4).tolist(),
-                  "halfwidth90": (factors[j] * s).round(4).tolist()}
-    (OUT / "predictions_beam.json").write_text(json.dumps(out, separators=(",", ":")))
-    print("wrote", OUT / "predictions_beam.json")
+                  "halfwidth90": (factors[j] * s).round(4).tolist(), "lightgbm": Pt[:, j].round(4).tolist()}
+    if split == "a0":
+        out["a0"] = X.a0[te].round(3).tolist()
+    (OUT / f"predictions_{split}.json").write_text(json.dumps(out, separators=(",", ":")))
+    print("wrote", OUT / f"predictions_{split}.json")
 
 
 def main():
@@ -164,7 +167,8 @@ def main():
     X, Y, meta, Ne, Ng = build()
     if a.predictions:
         OUT.mkdir(parents=True, exist_ok=True)
-        save_predictions(X, Y, meta)
+        for split in ("beam", "a0"):
+            save_predictions(X, Y, meta, split)
         return
     print(f"{len(X)} runs, {X.shape[1]} inputs, {Y.shape[1]} observables")
     OUT.mkdir(parents=True, exist_ok=True)

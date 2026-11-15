@@ -10,6 +10,7 @@ Writes docs/figures/:
   a0_eff.png           effective a0 per shot with published vs measured incoming-beam uncertainty
   recovery_a0.png      parameter recovery on 48 simulated shots: true vs inferred a0 and effective a0
   model_recovery.png   model comparison on 90 simulated shots: which model wins, per true model
+  surrogate_accuracy.png  surrogate vs Ptarmigan for energy loss and P70, unseen beams and a0 > 16.5, with LightGBM
   pipeline_checks.png  one predicted-vs-actual panel per stage (needs results/stage3/predictions_beam.json from
                        `stage3_surrogate.py --predictions` and per-shot arrays from beam_prediction_error.py)
 
@@ -343,9 +344,46 @@ def pipeline_checks():
     save(fig, "pipeline_checks.png")
 
 
+# ------------------------------------------------------------------ surrogate vs Ptarmigan
+def surrogate_accuracy():
+    fig, axes = plt.subplots(2, 2, figsize=(9.4, 9.2))
+    obs = (("loss_window_MeV", "energy loss ≥305 MeV (MeV)", "{:.1f} MeV"), ("e_P70", "P70 (1/GeV)", "{:.2f}"))
+    rows = (("beam", "Unseen incoming beams"), ("a0", "Extrapolation: trained on a0 ≤ 16.5, tested above"))
+    for i, (split, lab) in enumerate(rows):
+        d = json.loads((R / "stage3" / f"predictions_{split}.json").read_text())
+        for j, (c, name, fmt) in enumerate(obs):
+            ax = axes[i, j]
+            y, p, h, t = (np.array(d[c][k]) for k in ("ptarmigan", "surrogate", "halfwidth90", "lightgbm"))
+            if split == "a0":
+                ax.plot(y, t, ".", color=COL["incoming"], ms=2.5, alpha=0.35, zorder=1)
+            ax.plot(y, p, ".", color=COL["continuous"], ms=2.5, alpha=0.45, zorder=2)
+            lo, hi = min(y.min(), p.min(), t.min()), max(y.max(), p.max(), t.max())
+            pad = 0.03 * (hi - lo)
+            ax.plot([lo - pad, hi + pad], [lo - pad, hi + pad], color="#555", lw=1, ls="--", zorder=3)
+            ax.set(xlim=(lo - pad, hi + pad), ylim=(lo - pad, hi + pad), aspect="equal",
+                   xlabel=f"Ptarmigan {name}", ylabel=f"Predicted {name.split(' (')[0]}")
+            txt = (f"{lab if j == 0 else ''}\nMLP: R² {_r2(p, y):.3f}, error " + fmt.format(_rmse(p, y))
+                   + f", 90% intervals cover {np.mean(np.abs(p - y) <= h):.0%}"
+                   + f"\nLightGBM: R² {_r2(t, y):.3f}, error " + fmt.format(_rmse(t, y)))
+            ax.set_title(txt.lstrip("\n") if j else txt, fontsize=8.5, loc="left")
+    axes[1, 0].legend(handles=[plt.Line2D([], [], marker="o", ls="", color=COL["continuous"]),
+                               plt.Line2D([], [], marker="o", ls="", color=COL["incoming"])],
+                      labels=["MLP ensemble (adopted)", "LightGBM (baseline)"], loc="upper left", fontsize=8)
+    title(fig, "Surrogate vs Ptarmigan on collisions it never saw (dashed line: perfect agreement)")
+    save(fig, "surrogate_accuracy.png")
+
+
+def _r2(q, y):
+    return 1 - np.mean((q - y) ** 2) / np.var(y)
+
+
+def _rmse(q, y):
+    return np.sqrt(np.mean((q - y) ** 2))
+
+
 if __name__ == "__main__":
     OUT.mkdir(parents=True, exist_ok=True)
     figs = {"p70_shots": p70_shots, "bayes_factors": bayes_factors, "a0_eff": a0_eff,
-            "recovery_a0": recovery_a0, "model_recovery": model_recovery, "pipeline_checks": pipeline_checks, "sweep_gif": sweep_gif}
+            "recovery_a0": recovery_a0, "model_recovery": model_recovery, "pipeline_checks": pipeline_checks, "surrogate_accuracy": surrogate_accuracy, "sweep_gif": sweep_gif}
     for name in sys.argv[1:] or figs:
         figs[name]()
