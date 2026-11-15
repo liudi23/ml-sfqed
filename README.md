@@ -42,6 +42,33 @@ In this project we build an end-to-end pipeline that turns raw data from a stron
 
 Two-page summary: **[docs/summary.md](docs/summary.md)** · full write-up: **[docs/report.md](docs/report.md)**.
 
+## Quick start
+
+```bash
+pip install -e ".[demo]"
+jupyter lab notebooks/demo.ipynb
+```
+
+The [demo notebook](notebooks/demo.ipynb) (executed, outputs included) runs on the trained models shipped in [`models/`](models/README.md), with no simulation needed:
+
+1. predict Ptarmigan's outputs for a collision, with 90% intervals, in microseconds;
+2. how energy loss and P70 depend on a0, timing, alignment and the radiation-reaction model;
+3. propagate incoming-beam uncertainty through a collision;
+4. infer a0 and compare the three radiation-reaction models on a shot;
+5. *(with the Los et al. data)* the same on a real 2021 collision shot;
+6. *(with the Gemini data)* the beam model predicting a held-out shot's spectrum.
+
+Using the surrogate in your own code:
+
+```python
+from mlsfqed.surrogate.api import Surrogate
+s = Surrogate.load("stochastic")                    # or "continuous", "classical"
+df = s.predict(dWdE, E_MeV=E, a0=[8, 12, 16], dz_um=0.0, r_offset_um=1.0)
+df[["a0", "loss_window_MeV", "loss_window_MeV_lo", "loss_window_MeV_hi", "e_P70"]]
+```
+
+`dWdE` is any incoming electron spectrum (one, or one per collision); parameters not given take the nominal Gemini values. Valid inside the training ranges (`s.ranges`, e.g. a0 5–20); outside them a warning is raised.
+
 ## Pipeline
 
 <p align="center">
@@ -176,6 +203,8 @@ src/mlsfqed/
 scripts/         one script per step (see Reproduce)
 results/         metrics, figures and validation runs
 docs/            summary.md (2 pages), report.md (full), roadmap.md, figures/
+models/          trained surrogates (3 radiation-reaction models) and example beams
+notebooks/       demo.ipynb: end-to-end demo with outputs
 tests/           data-free unit tests (peak shape, observables, surrogate), run in CI with ruff
 ```
 

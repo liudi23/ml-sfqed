@@ -43,6 +43,7 @@ Status key: ✅ done · 🔄 in progress · ⬜ to do.
 - ✅ README: purpose, key results, pipeline diagram, figures, reproduce steps, limitations.
 - ✅ Two-page summary ([docs/summary.md](summary.md)) and full write-up ([docs/report.md](report.md)), positioned against Streeter et al. (beam model) and Los et al. (inference); figures in `docs/figures/` (`scripts/make_figures.py`, animation from `scripts/a0_sweep.py`): one predicted-vs-actual panel per stage (`pipeline_checks.png`), surrogate vs Ptarmigan (`surrogate_accuracy.png`), recovery on simulated shots (`recovery_a0.png`, `model_recovery.png`), P70 on real shots, Bayes factors and effective a0.
 - ✅ Polish: MIT licence, CITATION.cff, unused dependencies removed, data-free unit tests for the peak shape, observables (mean energy, P70, critical energy, beam energy) and the surrogate (derived inputs, ensemble), run in CI with ruff.
+- ✅ Demo and reuse: `notebooks/demo.ipynb` (executed): surrogate predictions, a0/timing/offset scans for the three models, beam-uncertainty propagation, inference and model comparison on a toy shot, optional real shot (Los et al. data) and beam model (Gemini data). Trained surrogates and example beams shipped in `models/`; public interface `mlsfqed.surrogate.api.Surrogate` with training-range warnings; tests in `tests/test_api.py`.
 - ⬜ Optional: short note linking to Euler–Heisenberg / light-by-light physics.
 
 ## Relation to published work

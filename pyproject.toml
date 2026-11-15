@@ -17,6 +17,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest", "ruff==0.17.5", "pre-commit"]
+demo = ["jupyterlab"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/mlsfqed"]

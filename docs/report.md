@@ -256,7 +256,7 @@ Summed natural-log Bayes factors over 10 shots. Los et al.'s values are differen
 
 ## Code, tests and reproducibility
 
-Code: [github.com/liudi23/ml-sfqed](https://github.com/liudi23/ml-sfqed), MIT licence ([CITATION.cff](../CITATION.cff) for citation). One script per step (README, *Reproduce*); every result in this report comes from a script, with fixed seeds and single-threaded LightGBM, so reruns give identical numbers. Data-free unit tests (peak shape against direct integration, beam energy, mean energy, P70, photon critical energy, the surrogate's derived inputs and ensemble) run in continuous integration with ruff on every push. A two-page version of this report is [summary.md](summary.md).
+Code: [github.com/liudi23/ml-sfqed](https://github.com/liudi23/ml-sfqed), MIT licence ([CITATION.cff](../CITATION.cff) for citation). One script per step (README, *Reproduce*); every result in this report comes from a script, with fixed seeds and single-threaded LightGBM, so reruns give identical numbers. Data-free unit tests (peak shape against direct integration, beam energy, mean energy, P70, photon critical energy, the surrogate's derived inputs and ensemble) run in continuous integration with ruff on every push. A two-page version of this report is [summary.md](summary.md). The trained surrogates are shipped in `models/` with a small interface (`mlsfqed.surrogate.api.Surrogate`: incoming spectrum and collision parameters in, Ptarmigan's observables with 90% intervals out, with a warning outside the training range), and [notebooks/demo.ipynb](../notebooks/demo.ipynb) walks through prediction, physics scans, uncertainty propagation, inference and model comparison.
 
 ## References
 
