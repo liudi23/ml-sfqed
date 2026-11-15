@@ -10,7 +10,7 @@ requires-python = ">=3.10"
 dependencies = [
   "numpy", "scipy", "pandas", "pyarrow", "h5py",
   "scikit-learn", "lightgbm", "shap",
-  "torch", "matplotlib", "pyyaml", "tqdm",
+  "torch", "matplotlib", "pyyaml", "tqdm", "emcee",
 ]
 
 [project.optional-dependencies]

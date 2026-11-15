@@ -29,6 +29,27 @@ ME_EV = 0.51099895e6
 
 COLLISION = ["a0", "waist_um", "fwhm_fs", "r_offset_um", "phi_offset", "dz_um",
              "radius_um", "length_um", "div_mrad"]
+BEAM_COLS = ["beam_Q_pC", "beam_W_J", "beam_mean_MeV", "beam_mean_window_MeV"] + [f"beam_pc{k}" for k in range(1, 7)]
+DERIVED = ["a0_eff_est", "dz_over_zR", "r_over_w", "chi_est"]
+INPUTS = COLLISION + DERIVED + BEAM_COLS
+
+
+def assemble_inputs(c, b) -> pd.DataFrame:
+    """Surrogate inputs from collision parameters c and beam descriptors b (dict-likes of equal-length or
+    broadcastable arrays). The single place where derived features are computed - used for training and
+    inference alike."""
+    c = {k: np.asarray(c[k], float) for k in COLLISION}
+    b = {k: np.asarray(b[k], float) for k in BEAM_COLS}
+    zR = np.pi * c["waist_um"] ** 2 / 0.8
+    overlap = np.exp(-c["r_offset_um"] ** 2 / (c["waist_um"] ** 2 / 2 + c["radius_um"] ** 2))
+    a_eff = c["a0"] / np.sqrt(1 + (c["dz_um"] / 2 / zR) ** 2) * np.sqrt(overlap)
+    gamma = b["beam_mean_MeV"] * 1e6 / ME_EV
+    cols = {**c, "a0_eff_est": a_eff, "dz_over_zR": c["dz_um"] / zR, "r_over_w": c["r_offset_um"] / c["waist_um"],
+            "chi_est": 2 * gamma * a_eff * HBAR_OMEGA_EV / ME_EV, **b}
+    n = max(np.size(v) for v in cols.values())
+    return pd.DataFrame({k: np.broadcast_to(cols[k], n) for k in INPUTS})
+
+
 TARGETS = {                  # name: how it is built from the scan columns
     "loss_MeV": "beam_mean_MeV - e_mean_MeV",
     "loss_window_MeV": "beam_mean_window_MeV - e_mean_window_MeV",
@@ -112,17 +133,7 @@ def build(stage2: Path = STAGE2):
     bd = beam_descriptors(stage2)
     b = bd.iloc[df.beam_index.values].reset_index(drop=True)
     df = pd.concat([df, b.drop(columns=[c for c in b.columns if c in df.columns])], axis=1)
-    zR = np.pi * df.waist_um ** 2 / 0.8
-    overlap = np.exp(-df.r_offset_um ** 2 / (df.waist_um ** 2 / 2 + df.radius_um ** 2))
-    a_eff = df.a0 / np.sqrt(1 + (df.dz_um / 2 / zR) ** 2) * np.sqrt(overlap)
-    X = df[COLLISION].copy()
-    X["a0_eff_est"] = a_eff
-    X["dz_over_zR"] = df.dz_um / zR
-    X["r_over_w"] = df.r_offset_um / df.waist_um
-    gamma = df.beam_mean_MeV * 1e6 / ME_EV
-    X["chi_est"] = 2 * gamma * a_eff * HBAR_OMEGA_EV / ME_EV
-    for c in [c for c in bd.columns if c.startswith("beam_") and c not in ("beam_source", "beam_shot_index")]:
-        X[c] = df[c]
+    X = assemble_inputs(df, df)
     Y = pd.DataFrame({
         "loss_MeV": df.beam_mean_MeV - df.e_mean_MeV,
         "loss_window_MeV": df.beam_mean_window_MeV - df.e_mean_window_MeV,

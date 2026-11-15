@@ -1,0 +1,37 @@
+{
+  "method": "Stage 1 peak model, train runs 05-12, test run 13; median of 100 calibrated samples",
+  "P70": {
+    "rmse": 0.28618501118969475,
+    "our_spread_median": 0.302694938547063,
+    "our_coverage90": 0.9035087719298246,
+    "los_network_spread_per_shot": [
+      0.1064,
+      0.07,
+      0.1123,
+      0.1158,
+      0.1315,
+      0.0787,
+      0.0551,
+      0.0949,
+      0.1585,
+      0.2045
+    ]
+  },
+  "mean_window_MeV": {
+    "rmse": 18.830422927719948,
+    "our_spread_median": 21.13266529146766,
+    "our_coverage90": 0.9210526315789473,
+    "los_network_spread_per_shot": [
+      6.9373,
+      3.9351,
+      11.659,
+      4.364,
+      9.3001,
+      5.8779,
+      7.2308,
+      5.9166,
+      3.998,
+      11.6594
+    ]
+  }
+}
