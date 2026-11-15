@@ -27,10 +27,14 @@ RANGES = {                       # name: (low, high)
 }
 
 
-def sobol_design(n: int, n_beams: int, seed: int = 0) -> dict:
-    """n should be a power of two. Returns dict of arrays incl. beam index and Cartesian offsets."""
+def sobol_design(n: int, n_beams: int, seed: int = 0, skip: int = 0) -> dict:
+    """n should be a power of two. `skip` continues the same Sobol sequence after `skip` points, so an
+    extension fills the gaps of an existing design. Returns dict of arrays incl. beam index and offsets."""
     names = list(RANGES)
-    s = qmc.Sobol(d=len(names) + 1, scramble=True, seed=seed).random(n)
+    sampler = qmc.Sobol(d=len(names) + 1, scramble=True, seed=seed)
+    if skip:
+        sampler.fast_forward(skip)
+    s = sampler.random(n)
     out = {k: lo + s[:, i] * (hi - lo) for i, (k, (lo, hi)) in enumerate(RANGES.items())}
     # longitudinal offset: dz = 250 um * sign(v) * v^2 with v uniform in [-1, 1], so half of the runs fall
     # within +-62 um (~2.5 Rayleigh ranges) while the full +-250 um range is still covered
@@ -39,7 +43,7 @@ def sobol_design(n: int, n_beams: int, seed: int = 0) -> dict:
     out["beam_index"] = np.minimum((s[:, -1] * n_beams).astype(int), n_beams - 1)
     out["dx_um"] = out["r_offset_um"] * np.cos(out["phi_offset"])
     out["dy_um"] = out["r_offset_um"] * np.sin(out["phi_offset"])
-    out["run_id"] = np.arange(n)
+    out["run_id"] = np.arange(skip, skip + n)
     return out
 
 

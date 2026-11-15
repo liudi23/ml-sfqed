@@ -1,6 +1,7 @@
 """Stage 2: Ptarmigan scan over collision parameters and real/sampled Gemini beams.
 
   python scripts/stage2_scan.py design --n 4096          # beam pool + Sobol design (~1 min)
+  python scripts/stage2_scan.py extend --n 4096          # append the next 4096 points of the same sequence
   python scripts/stage2_scan.py run --workers 8          # run all pending rows; resumable (~25 s/run/core)
   python scripts/stage2_scan.py run --workers 4 --limit 16   # a pilot
   python scripts/stage2_scan.py collect                  # merge into runs.parquet + spectra.npz
@@ -45,6 +46,19 @@ def cmd_design(n, seed):
          "rates": "LMA, quantum stochastic, RR on, pairs off",
          "dz_sampling": "250 um * sign(v) * v^2, v ~ U(-1, 1)"}, indent=2))
     print(f"design: {n} runs over {len(pool['Q_pC'])} beams ({time.time() - t0:.0f} s) -> {OUT}")
+
+
+def cmd_extend(n):
+    import pandas as pd
+    des = pd.read_parquet(OUT / "design.parquet")
+    meta = json.loads((OUT / "design_meta.json").read_text())
+    new = pd.DataFrame(sobol_design(n, meta["n_beams"], meta["seed"], skip=len(des)))
+    assert new.run_id.min() == des.run_id.max() + 1
+    pd.concat([des, new], ignore_index=True).to_parquet(OUT / "design.parquet")
+    meta["n"] = len(des) + n
+    meta.setdefault("extensions", []).append({"added": n, "skip": len(des)})
+    (OUT / "design_meta.json").write_text(json.dumps(meta, indent=2))
+    print(f"design extended: {len(des)} -> {len(des) + n} runs (run_id {len(des)}-{len(des) + n - 1})")
 
 
 def _work(row, spec, E, q):
@@ -121,10 +135,13 @@ def main():
     sub = ap.add_subparsers(dest="cmd", required=True)
     d = sub.add_parser("design"); d.add_argument("--n", type=int, default=4096); d.add_argument("--seed", type=int, default=0)
     r = sub.add_parser("run"); r.add_argument("--workers", type=int, default=os.cpu_count()); r.add_argument("--limit", type=int)
+    e = sub.add_parser("extend"); e.add_argument("--n", type=int, default=4096)
     sub.add_parser("collect")
     a = ap.parse_args()
     if a.cmd == "design":
         cmd_design(a.n, a.seed)
+    elif a.cmd == "extend":
+        cmd_extend(a.n)
     elif a.cmd == "run":
         cmd_run(a.workers, a.limit)
     else:
