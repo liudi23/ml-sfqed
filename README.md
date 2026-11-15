@@ -26,7 +26,7 @@ In this project we build an end-to-end pipeline that turns raw data from a stron
 | **Better beam prediction, with honest uncertainty** | Spectral MSE **0.045 vs 0.057** for the published network ensemble (22% lower), with a physics-based peak shape; calibrated 90% intervals cover 89–90% of held-out shots (raw ensembles: 44–68%). |
 | **Accurate surrogate** | MLP ensemble reproduces Ptarmigan to R² 0.98 (energy loss) at ~2× its Monte Carlo noise; ~18,000× faster per call, ~4×10⁶× batched. |
 
-Full write-up: **[docs/report.md](docs/report.md)**.
+Two-page summary: **[docs/summary.md](docs/summary.md)** · full write-up: **[docs/report.md](docs/report.md)**.
 
 ## Pipeline
 
@@ -127,8 +127,8 @@ src/mlsfqed/
   inference/     Los et al. data, likelihood, posterior, evidence
 scripts/         one script per step (see Reproduce)
 results/         metrics, figures and validation runs
-docs/            report.md, roadmap.md, figures/
-tests/           unit tests (pytest), run in CI with ruff
+docs/            summary.md (2 pages), report.md (full), roadmap.md, figures/
+tests/           data-free unit tests (peak shape, observables, surrogate), run in CI with ruff
 ```
 
 ## Data and references
@@ -136,6 +136,10 @@ tests/           unit tests (pytest), run in CI with ruff
 - **Gemini LWFA data:** M. J. V. Streeter et al., *Laser wakefield accelerator modelling with variational neural networks*, High Power Laser Sci. Eng. 11, e9 (2023), [doi:10.1017/hpl.2022.47](https://doi.org/10.1017/hpl.2022.47). Data: [doi:10.5281/zenodo.7510352](https://doi.org/10.5281/zenodo.7510352) (CC BY 4.0).
 - **Collision shots and model evidences:** E. E. Los et al., *Observation of quantum effects on radiation reaction in strong fields*, Nature Communications, [doi:10.1038/s41467-025-67918-8](https://doi.org/10.1038/s41467-025-67918-8) ([arXiv:2407.12071](https://arxiv.org/abs/2407.12071)); E. E. Los et al., *A Bayesian framework to investigate radiation reaction in strong fields*, High Power Laser Sci. Eng. (2024), [doi:10.1017/hpl.2024.83](https://doi.org/10.1017/hpl.2024.83). Public data from [ELos385/RadiationReaction](https://github.com/ELos385/RadiationReaction), fetched locally and not redistributed here; figures show derived quantities.
 - **Ptarmigan:** T. G. Blackburn et al., Phys. Plasmas 30, 093903 (2023).
+
+## Licence
+
+Code under the [MIT licence](LICENSE); see [CITATION.cff](CITATION.cff) to cite it. The Gemini data are CC BY 4.0 (Streeter et al.); the Los et al. collision data are not redistributed.
 
 ## Author
 

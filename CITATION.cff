@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "ML-SFQED: calibrated machine learning and simulation-based inference for strong-field QED experiments"
+authors:
+  - family-names: Liu
+    given-names: Di
+version: 0.1.0
+date-released: 2026-11-15
+license: MIT
+repository-code: "https://github.com/liudi23/ml-sfqed"
+keywords:
+  - strong-field QED
+  - radiation reaction
+  - laser wakefield acceleration
+  - surrogate model
+  - Bayesian inference
+  - uncertainty quantification

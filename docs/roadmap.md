@@ -39,8 +39,11 @@ Status key: ✅ done · 🔄 in progress · ⬜ to do.
 - ✅ Model comparison (`scripts/compare_models.py`, `scripts/diagnose_p70.py`): energy loss alone cannot separate the models; spectral broadening (P70) favours stochastic quantum radiation reaction on all 10 shots (summed log Bayes factor +20 over classical with the measured beam error, +34 with the published spread, +9 with the transverse offset also free). Diagnostics rule out definition artefacts, out-of-distribution beams and surrogate error.
 - ⬜ Next: full-spectrum likelihood with an explicit incoming-shape error model; add a photon observable once the gamma spectrometer response is modelled
 
-## Stage 4 – Write-up ✅
-- [docs/report.md](report.md), figures in `docs/figures/` (`scripts/make_figures.py`, animation from `scripts/a0_sweep.py`).
+## Stage 4 – Write-up and polish ✅
+- ✅ README: purpose, key results, pipeline diagram, figures, reproduce steps, limitations.
+- ✅ Two-page summary ([docs/summary.md](summary.md)) and full write-up ([docs/report.md](report.md)), positioned against Streeter et al. (beam model) and Los et al. (inference); figures in `docs/figures/` (`scripts/make_figures.py`, animation from `scripts/a0_sweep.py`).
+- ✅ Polish: MIT licence, CITATION.cff, unused dependencies removed, data-free unit tests for the peak shape, observables (mean energy, P70, critical energy, beam energy) and the surrogate (derived inputs, ensemble), run in CI with ruff.
+- ⬜ Optional: short note linking to Euler–Heisenberg / light-by-light physics.
 
 ## Relation to published work
 - **Streeter et al., HPLSE 11, e9 (2023)** – variational neural-network model of the same LWFA; source of the data and the Stage 1 baseline.

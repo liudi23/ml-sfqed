@@ -5,16 +5,18 @@ build-backend = "hatchling.build"
 [project]
 name = "mlsfqed"
 version = "0.1.0"
-description = "ML pipeline from Gemini LWFA data to a strong-field QED surrogate"
+description = "Calibrated ML beam model, QED Monte Carlo surrogate and Bayesian inference for strong-field QED experiments"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [{name = "Di Liu"}]
 requires-python = ">=3.10"
 dependencies = [
   "numpy", "scipy", "pandas", "pyarrow", "h5py",
-  "scikit-learn", "lightgbm", "shap",
-  "torch", "matplotlib", "pyyaml", "tqdm", "emcee",
+  "scikit-learn", "lightgbm", "matplotlib", "emcee", "pillow",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "ruff==0.17.5", "pre-commit", "mlflow"]
+dev = ["pytest", "ruff==0.17.5", "pre-commit"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/mlsfqed"]
