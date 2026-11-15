@@ -18,21 +18,25 @@ Status key: ✅ done · 🔄 in progress · ⬜ to do.
 - Findings: raw ensemble spreads are overconfident (44–68% coverage of a nominal 90% interval) until calibrated; history and physics-based features add nothing because the remaining error is independent shot-to-shot noise; optional online adaptation during a run brings run13 coverage to 89%.
 - Scripts: `run_stage1.py`, `validate_sampler.py`, `compare_shape_models.py`, `feature_study.py`, `online_adaptation.py`.
 
-## Stage 2 – Monte Carlo with Ptarmigan ✅ (chirp check to do)
+## Stage 2 – Monte Carlo with Ptarmigan ✅
 - ✅ Ptarmigan v1.6.1 build script and validation (`scripts/install_ptarmigan.sh`, `results/ptarmigan_validation/`): classical radiation reaction vs Landau–Lifshitz to ≤0.01%; quantum vs classical and LMA vs LCFA consistent; weak-field Compton edge, a0² scaling and Klein–Nishina-corrected energy loss to ≤1%; Stage 1 sampled beams load through spectrum files.
 - ✅ Scan design and runner (`scripts/stage2_scan.py`, `src/mlsfqed/simulation/`): 4,096 Sobol-sampled collisions over a pool of 1,935 beams (645 measured spectra + 2 calibrated Stage 1 draws each); a0 5–20, waist 2–3 µm, 35–55 fs, transverse offset 0–5 µm, longitudinal offset ±250 µm (denser near focus), beam radius, bunch length and divergence. Resumable, parallel, Parquet output with config hash and timing.
 - **Rates: LMA.** LCFA matches LMA in energy loss (0.07% at a0 = 20) but overproduces photons 2.4–4.7× in weaker collisions and shifts the critical energy, so LMA is used; its tables cap a0 at 20.
 - Observables: electron mean energy (all and ≥305 MeV) and P70 as defined by Los et al. (after 10 MeV smoothing), energy spread; photon yield, mean and total energy, critical energy, energy-weighted angular spread; binned electron and photon spectra. Monte Carlo noise at 5,000 electrons: mean energy ±1–1.5 MeV, P70 ±4%, photon yield ±1%. Energy balance (electron loss vs photon energy) holds to ±2 MeV.
 - ✅ Full scan: 8,192 runs (4,096, then extended with the next 4,096 points of the same Sobol sequence after the learning curve showed photon observables were data-limited); 0 failures; ~45 min per 4,096 on a 12-core laptop.
-- ⬜ Beam-chirp sensitivity check.
+- ✅ Beam-chirp sensitivity check (`scripts/chirp_check.py`): chirp ±0.2/±0.5 shifts energy loss by ≤0.4 MeV and P70 by ≤0.03, within Monte Carlo noise.
+- ✅ Radiation-reaction model scans: the first 4,096 collisions repeated with classical (Landau–Lifshitz) and continuous (Gaunt-factor corrected) radiation reaction, same seeds.
 
 ## Stage 3 – Fast surrogate and inference ✅ (first version)
 - ✅ Surrogate (`scripts/stage3_surrogate.py`, `results/stage3/`): deep MLP ensemble on the 8,192-run scan, LightGBM baseline. On unseen beams R² 0.98–0.995 for energy loss, photon yield and energy, critical energy and angles (P70 0.79); errors 1.4–2.5× the Monte Carlo noise for energy and angle observables. Split-conformal calibration: 88–92% coverage of 90% intervals. Extrapolation to a0 > 16.5: R² 0.97–0.99 (MLP; trees 0.91–0.95). ~18,000× faster than Ptarmigan per call, ~4×10⁶× batched.
 - ✅ Inference on the 10 public collision shots of Los et al. (`scripts/infer_los2024.py`, `results/inference/`): emcee over a0, longitudinal and transverse offset and bunch length; likelihood on outgoing mean energy and P70, marginalised over 50 predicted incoming beams. Recovery test on 48 unseen simulated shots: 90% coverage 0.90 (a0) / 0.83 (effective a0). 42 CPU-s per inference vs ~19,200 CPU-hours (simpler likelihood than theirs).
-- **Finding:** the published incoming-beam uncertainty is ~3× too narrow (P70 0.11 vs 0.29; mean energy 6.4 vs 18.8 MeV realistic error on a held-out run); calibrating it widens the effective-a0 posteriors by 43%. With two summary observables only the effective field strength is constrained; offsets and bunch length are prior-dominated.
-- ⬜ Next: full-spectrum likelihood to break the a0–offset degeneracy; classical-RR scan for model comparison; uncertainty-propagation demo.
+- **Finding:** the published incoming-beam uncertainty is ~3× too narrow (P70 0.11 vs 0.29; mean energy 6.4 vs 18.8 MeV realistic error on a held-out run); calibrating it widens the effective-a0 intervals by about 50% (26% with the transverse offset free). With two summary observables only the effective field strength is constrained; offsets and bunch length are prior-dominated.
+- ✅ Uncertainty propagation (`scripts/propagate_uncertainty.py`): 11,400 surrogate evaluations in 0.08 s vs ~114 CPU-hours.
+- ✅ Model comparison (`scripts/compare_models.py`, `scripts/diagnose_p70.py`): energy loss alone cannot separate the models; spectral broadening (P70) favours stochastic quantum radiation reaction on all 10 shots (summed log Bayes factor +18 over classical with the measured beam error, +34 with the published spread, +8 with the transverse offset also free). Diagnostics rule out definition artefacts, out-of-distribution beams and surrogate error.
+- ⬜ Next: full-spectrum likelihood with an explicit incoming-shape error model; explain the effective-a0 offset from Los et al.
 
-## Stage 4 – Write-up ⬜
+## Stage 4 – Write-up ✅
+- [docs/report.md](report.md), figures in `docs/figures/` (`scripts/make_figures.py`, animation from `scripts/a0_sweep.py`).
 
 ## Relation to published work
 - **Streeter et al., HPLSE 11, e9 (2023)** – variational neural-network model of the same LWFA; source of the data and the Stage 1 baseline.

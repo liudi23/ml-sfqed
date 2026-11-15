@@ -1,0 +1,202 @@
+"""Figures for the README and report, built from the result files.
+
+  python scripts/make_figures.py
+
+Writes docs/figures/:
+  rr_sweep.gif         animated outgoing spectra vs laser strength for three radiation-reaction models
+                       (needs results/diagnostics/a0_sweep_spectra.json from scripts/a0_sweep.py)
+  p70_shots.png        observed P70 on the 10 collision shots vs each model's prediction after fitting energy loss
+  bayes_factors.png    summed log Bayes factors vs classical under four uncertainty set-ups, and Los et al.
+  a0_eff.png           effective a0 per shot with published vs measured incoming-beam uncertainty
+"""
+
+from __future__ import annotations
+
+import csv
+import json
+import sys
+from pathlib import Path
+
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import numpy as np
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+from run_stage1 import check_fits
+
+R = ROOT / "results"
+OUT = ROOT / "docs" / "figures"
+COL = {"stochastic": "#2b6cb0", "continuous": "#8a5cc2", "classical": "#d9822b", "incoming": "#9aa0a6"}
+NAME = {"stochastic": "Stochastic (quantum)", "continuous": "Continuous (quantum)", "classical": "Classical (LL)"}
+MODELS = ("stochastic", "continuous", "classical")
+LOS_SUM = {"continuous": 2.84, "stochastic": 2.87}   # Los et al. Model_evidences.csv, summed differences vs classical
+
+plt.rcParams.update({"font.size": 10, "axes.spines.top": False, "axes.spines.right": False,
+                     "axes.grid": True, "grid.color": "#e6e6e6", "grid.linewidth": 0.8, "axes.axisbelow": True,
+                     "legend.frameon": False})
+
+
+def title(fig, text):
+    fig.suptitle(text, x=0.015, ha="left", fontsize=11, fontweight="bold")
+
+
+def save(fig, name):
+    fig.tight_layout()
+    check_fits(fig, name)
+    fig.savefig(OUT / name, dpi=150)
+    plt.close(fig)
+    print("wrote", OUT / name)
+
+
+# ------------------------------------------------------------------ animation
+def sweep_gif(fps=12, hold=6, steps=8):
+    from matplotlib.animation import FuncAnimation, PillowWriter
+    d = json.loads((R / "diagnostics" / "a0_sweep_spectra.json").read_text())
+    E = np.array(d["E"])
+    a0s = [f["a0"] for f in d["frames"]]
+    Y = {m: np.array([f[m]["y"] for f in d["frames"]]) for m in MODELS}
+    P = {m: np.array([f[m]["P70"] for f in d["frames"]]) for m in MODELS}
+    # timeline: hold on each a0, then interpolate to the next
+    t = []
+    for i in range(len(a0s)):
+        t += [float(i)] * hold
+        if i < len(a0s) - 1:
+            t += list(i + np.arange(1, steps) / steps)
+    t += [float(len(a0s) - 1)] * (2 * hold)
+
+    def at(arr, s):
+        i = int(np.floor(s)); f = s - i
+        return arr[i] if f == 0 or i + 1 >= len(arr) else (1 - f) * arr[i] + f * arr[i + 1]
+
+    fig = plt.figure(figsize=(8.0, 6.2))
+    gs = fig.add_gridspec(2, 1, height_ratios=[2.2, 1], hspace=0.38, left=0.1, right=0.97, top=0.88, bottom=0.09)
+    ax, bx = fig.add_subplot(gs[0]), fig.add_subplot(gs[1])
+    fig.suptitle("Classical radiation reaction sharpens the peak; stochastic emission spreads it",
+                 x=0.1, ha="left", fontsize=10.5, fontweight="bold")
+    fig.text(0.1, 0.905, "Ptarmigan, one measured Gemini beam, head-on at focus; outgoing electron spectra as a0 rises",
+             fontsize=9, color="#555")
+    ax.plot(E, d["incoming"], ls="--", color=COL["incoming"], lw=1.5, label="Incoming beam")
+    lines = {m: ax.plot(E, Y[m][0], color=COL[m], lw=2.4 if m == "stochastic" else 1.8, label=NAME[m])[0] for m in MODELS}
+    ymax = max(Y[m].max() for m in MODELS) * 1.05
+    ax.set(xlim=(E[0], E[-1]), ylim=(0, ymax), xlabel="Electron energy (MeV)", ylabel="E dN/dE, normalised (1/GeV)")
+    ax.legend(loc="upper left", fontsize=8.5)
+    label = ax.text(0.98, 0.9, "", transform=ax.transAxes, ha="right", fontsize=17, fontweight="bold")
+    ax_txt = ax.text(0.98, 0.72, "", transform=ax.transAxes, ha="right", va="top", fontsize=9, family="monospace")
+    bx.axhline(d["incoming_P70"], ls="--", color=COL["incoming"], lw=1)
+    bx.text(a0s[-1], d["incoming_P70"] - 0.06, "incoming beam", color="#777", fontsize=8, ha="right", va="top")
+    for m in MODELS:
+        bx.plot(a0s, P[m], "-o", color=COL[m], ms=3, lw=1.5)
+    dots = {m: bx.plot([], [], "o", color=COL[m], ms=8, mec="white", mew=1.2)[0] for m in MODELS}
+    cur = bx.axvline(a0s[0], color="#333", lw=1, alpha=0.5)
+    bx.set(xlabel="Laser strength a0", ylabel="P70 (1/GeV)", xticks=a0s[::1] if len(a0s) < 14 else a0s[::2])
+
+    def draw(s):
+        a0 = at(np.array(a0s, float), s)
+        for m in MODELS:
+            lines[m].set_ydata(at(Y[m], s))
+            dots[m].set_data([a0], [at(P[m], s)])
+        cur.set_xdata([a0, a0])
+        label.set_text(f"a0 = {a0:.1f}" if s % 1 else f"a0 = {a0:.0f}")
+        ax_txt.set_text("P70\n" + "\n".join(f"{m[:10]:<10s} {at(P[m], s):.2f}" for m in ("classical", "continuous", "stochastic")))
+        return [*lines.values(), *dots.values(), cur, label, ax_txt]
+
+    draw(0.0)
+    check_fits(fig, "rr_sweep.gif")
+    FuncAnimation(fig, draw, frames=t, blit=False).save(OUT / "rr_sweep.gif", writer=PillowWriter(fps=fps), dpi=90)
+    draw(float(a0s.index(8)) if 8 in a0s else 0.0)
+    fig.savefig(OUT / "rr_sweep_still.png", dpi=150)
+    plt.close(fig)
+    print("wrote", OUT / "rr_sweep.gif")
+
+
+# ------------------------------------------------------------------ P70 on the real shots
+def p70_shots():
+    d = json.loads((R / "diagnostics" / "p70" / "summary.json").read_text())
+    inc = {a["shot"]: a["incoming_P70_median"] for a in d["A"]["A3"]}
+    rows = d["per_shot_model"]
+    shots = sorted({r["shot"] for r in rows})
+    fig, ax = plt.subplots(figsize=(8.0, 6.0))
+    off = {"stochastic": -0.22, "continuous": 0.0, "classical": 0.22}
+    for r in rows:
+        y = r["shot"] + off[r["model"]]
+        p5, p50, p95 = r["mean_only"]["pred_P70_p5_p50_p95"]
+        ax.plot([p5, p95], [y, y], color=COL[r["model"]], lw=2.2, alpha=0.8, solid_capstyle="round")
+        ax.plot(p50, y, "o", color=COL[r["model"]], ms=4)
+    for s in shots:
+        obs = next(r["obs_P70"] for r in rows if r["shot"] == s)
+        ax.plot(inc[s], s, "o", mfc="none", mec="#777", ms=9, mew=1.5)
+        ax.plot(obs, s, "D", color="black", ms=6.5)
+    ax.set(yticks=shots, yticklabels=[f"shot {s}" for s in shots], xlabel="P70 (1/GeV)", ylim=(max(shots) + 0.6, -0.6))
+    ax.grid(axis="y", visible=False)
+    h = [plt.Line2D([], [], marker="D", color="black", ls="", label="Observed"),
+         plt.Line2D([], [], marker="o", mfc="none", mec="#777", ls="", ms=8, label="Predicted incoming beam")]
+    h += [plt.Line2D([], [], color=COL[m], lw=2.2, label=f"{NAME[m]}, 5–95%") for m in MODELS]
+    ax.legend(handles=h, loc="upper center", bbox_to_anchor=(0.5, -0.11), ncol=3, fontsize=8.5)
+    title(fig, "Every shot leaves the collision broader than it arrived;\nonly stochastic emission predicts that")
+    save(fig, "p70_shots.png")
+
+
+# ------------------------------------------------------------------ Bayes factors
+def bayes_factors():
+    with open(R / "model_comparison" / "shots.csv") as f:
+        rows = list(csv.DictReader(f))
+    def total(setup, unc, mdl, obs="mean+P70"):
+        z = {(int(r["shot"]), r["model"]): float(r[f"logZ_{obs}"]) for r in rows if r["setup"] == setup and r["beam_unc"] == unc}
+        return sum(z[(s, mdl)] - z[(s, "classical")] for s in range(10))
+    cfg = [("los", "published", "Published beam spread\noffset fixed"), ("los", "calibrated", "Measured beam error\noffset fixed"),
+           ("offset", "published", "Published beam spread\noffset free"), ("offset", "calibrated", "Measured beam error\noffset free")]
+    fig, ax = plt.subplots(figsize=(8.0, 4.6))
+    labels, y = [], 0
+    for setup, unc, lab in cfg:
+        for j, mdl in enumerate(("stochastic", "continuous")):
+            v = total(setup, unc, mdl)
+            ax.barh(y + j * 0.36, v, height=0.32, color=COL[mdl])
+            ax.text(v + 0.4, y + j * 0.36, f"{v:+.1f}", va="center", fontsize=8.5)
+        labels.append((y + 0.18, lab)); y += 1
+    for j, mdl in enumerate(("stochastic", "continuous")):
+        ax.barh(y + j * 0.36, LOS_SUM[mdl], height=0.32, color=COL[mdl], alpha=0.45)
+        ax.text(LOS_SUM[mdl] + 0.4, y + j * 0.36, f"{LOS_SUM[mdl]:+.1f}", va="center", fontsize=8.5)
+    labels.append((y + 0.18, "Los et al. (2024)\nfull spectrum"))
+    ax.set_yticks([p for p, _ in labels], [lab for _, lab in labels], fontsize=8.5)
+    ax.invert_yaxis()
+    ax.set_xlim(0, ax.get_xlim()[1] * 1.08)
+    ax.axvline(5, ls="--", color="#999", lw=1)
+    ax.text(5.3, -0.45, "strong evidence", color="#777", fontsize=8)
+    ax.grid(axis="y", visible=False)
+    ax.set_xlabel("Summed log Bayes factor vs classical, 10 shots (mean energy + P70)")
+    ax.legend(handles=[plt.Rectangle((0, 0), 1, 1, color=COL[m]) for m in ("stochastic", "continuous")],
+              labels=["Stochastic vs classical", "Continuous vs classical"], loc="lower right", fontsize=8.5)
+    title(fig, "The stochastic preference survives realistic uncertainty, at half the strength")
+    save(fig, "bayes_factors.png")
+
+
+# ------------------------------------------------------------------ effective a0
+def a0_eff():
+    post = json.loads((R / "inference" / "los2024_posteriors.json").read_text())["results"]
+    fig, ax = plt.subplots(figsize=(8.0, 3.8))
+    for r in post:
+        if r["setup"] != "los":
+            continue
+        meas = r["beam_unc"] == "calibrated"
+        x = r["shot"] + (0.13 if meas else -0.13)
+        c = COL["stochastic"] if meas else COL["incoming"]
+        a = r["a0_eff"]
+        ax.plot([x, x], [a["p16"], a["p84"]], color=c, lw=2.4, solid_capstyle="round")
+        ax.plot(x, a["p50"], "o", color=c, ms=5.5, mec="white", mew=1)
+    ax.set(xticks=range(10), xlabel="Collision shot", ylabel="Effective a0 (median, 16–84%)", ylim=(0, None))
+    ax.grid(axis="x", visible=False)
+    ax.legend(handles=[plt.Line2D([], [], color=COL["incoming"], lw=2.4, marker="o"), plt.Line2D([], [], color=COL["stochastic"], lw=2.4, marker="o")],
+              labels=["Published incoming-beam spread", "Measured incoming-beam error"], loc="upper right", fontsize=8.5)
+    title(fig, "Realistic beam uncertainty widens every field-strength estimate by about half")
+    save(fig, "a0_eff.png")
+
+
+if __name__ == "__main__":
+    OUT.mkdir(parents=True, exist_ok=True)
+    p70_shots()
+    bayes_factors()
+    a0_eff()
+    sweep_gif()
