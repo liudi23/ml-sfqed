@@ -61,6 +61,32 @@ def load_runs(stage2: Path = STAGE2) -> tuple[pd.DataFrame, np.ndarray, np.ndarr
     return df, Ne, Ng
 
 
+def pool_shape_pca(stage2: Path = STAGE2, n_pc: int = 6):
+    """PCA of the beam pool's normalised energy-weighted spectra (unit area over E in GeV)."""
+    pool = dict(np.load(stage2 / "beam_pool.npz", allow_pickle=False))
+    E, Y = pool["E_MeV"], pool["dWdE_J_per_GeV"]
+    shape = Y / np.trapezoid(Y, E / 1e3, axis=1)[:, None]
+    return E, PCA(n_pc, svd_solver="full").fit(shape)
+
+
+def describe_beams(dWdE, E, pca, Q_pC):
+    """Beam descriptors for spectra not in the pool (e.g. Los et al. predictions), on the pool grid E.
+    dWdE: (n, len(E)) any scale; Q_pC: charge to assign (per-electron observables don't depend on it)."""
+    dWdE = np.atleast_2d(dWdE)
+    shape = dWdE / np.trapezoid(dWdE, E / 1e3, axis=1)[:, None]
+    dNdE = dWdE / E[None, :]
+    mean = (dNdE * E).sum(1) / dNdE.sum(1)
+    win = E >= 305.0
+    out = pd.DataFrame({"beam_Q_pC": np.broadcast_to(Q_pC, len(dWdE)).astype(float),
+                        "beam_W_J": np.broadcast_to(Q_pC, len(dWdE)) * mean * 1e-6,   # (Q/e) * <E> in joules
+                        "beam_mean_MeV": mean,
+                        "beam_mean_window_MeV": (dNdE[:, win] * E[win]).sum(1) / dNdE[:, win].sum(1)})
+    pcs = pca.transform(shape)
+    for k in range(pcs.shape[1]):
+        out[f"beam_pc{k + 1}"] = pcs[:, k]
+    return out
+
+
 def beam_descriptors(stage2: Path = STAGE2, n_pc: int = 6) -> pd.DataFrame:
     """One row per beam in the pool: charge, energy, mean energy, mean in window, shape PCA coefficients."""
     pool = dict(np.load(stage2 / "beam_pool.npz", allow_pickle=False))
@@ -68,7 +94,7 @@ def beam_descriptors(stage2: Path = STAGE2, n_pc: int = 6) -> pd.DataFrame:
     Y = pool["dWdE_J_per_GeV"]
     W = np.trapezoid(Y, E / 1e3, axis=1)
     shape = Y / W[:, None]
-    pcs = PCA(n_pc, svd_solver="full").fit_transform(shape)
+    pcs = pool_shape_pca(stage2, n_pc)[1].transform(shape)
     out = pd.DataFrame({"beam_Q_pC": pool["Q_pC"], "beam_W_J": W,
                         "beam_mean_MeV": (N * E).sum(1) / N.sum(1)})
     win = E >= 305.0
