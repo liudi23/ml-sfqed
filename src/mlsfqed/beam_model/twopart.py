@@ -140,6 +140,30 @@ class GPBlendEnsemble(EnergyEnsemble):
         return 0.5 * (mu + self.gp.predict(X)), sd
 
 
+class MarginalEnsemble:
+    """A target the diagnostics cannot predict (e.g. peak width, held-out R^2 < 0): its prediction is the
+    training mean, and samples draw from its training distribution. Same interface as EnergyEnsemble."""
+
+    def __init__(self, n_members=20, frac=0.8, seed=0):
+        self.seed = seed
+
+    def fit(self, X, y):
+        n = len(y)
+        self.mu, self.sd = float(np.mean(y)), float(np.std(y, ddof=1))
+        self.sd_floor = self.sd
+        # leave-one-out mean, so a training shot's residual is out of sample
+        self.oob_mu = (y.sum() - y) / (n - 1)
+        self.oob_sd_used = np.full(n, self.sd)
+        self.has_oob = np.ones(n, bool)
+        self.scores_all = (y - self.oob_mu) / self.sd
+        self.scores = self.scores_all
+        return self
+
+    def predict(self, X):
+        n = len(X)
+        return np.full(n, self.mu), np.full(n, self.sd)
+
+
 # ---------------------------------------------------------------- per-bin band calibration
 def _cqr_scores(samples, Y, level=0.9):
     """Per-bin nonconformity of Y against a sampled band (scaled conformalised quantile regression)."""
@@ -278,22 +302,27 @@ class PeakBeamModel(_CalibratedMixin):
 
     PEAK_PARAMS = ("log_height", "position", "log_width")
 
-    def __init__(self, E_MeV, n_members=20, seed=0, n_pc=10, gp_blend=()):
+    def __init__(self, E_MeV, n_members=20, seed=0, n_pc=10, gp_blend=(), shape="gauss", marginal=()):
         """gp_blend: peak parameters (names from PEAK_PARAMS) whose LightGBM ensemble is averaged with a
-        Gaussian process (GPBlendEnsemble). Empty = the original model, as used for the Stage 2 beam pool."""
+        Gaussian process (GPBlendEnsemble). shape: "gauss" or "sqrt_edge" (peaks.sqrt_edge; position = edge
+        E_max). marginal: peak parameters not predicted from the diagnostics but drawn from their training
+        distribution (MarginalEnsemble). Defaults = the original model, as used for the Stage 2 beam pool."""
         self.E = np.asarray(E_MeV)
         self.seed, self.n_members, self.gp_blend = seed, n_members, tuple(gp_blend)
+        self.shape, self.marginal = shape, tuple(marginal)
         self.energy = EnergyEnsemble(n_members=n_members, seed=seed)
-        self.peak = [(GPBlendEnsemble if name in self.gp_blend else EnergyEnsemble)(n_members=n_members, seed=seed)
-                     for name in self.PEAK_PARAMS]
+        def make(name):
+            cls = MarginalEnsemble if name in self.marginal else GPBlendEnsemble if name in self.gp_blend else EnergyEnsemble
+            return cls(n_members=n_members, seed=seed)
+        self.peak = [make(name) for name in self.PEAK_PARAMS]
         self.cont = BaggedSpectrumModel("lgbm", n_members=n_members, n_pc=n_pc, seed=seed, frac=0.8)
 
     def fit(self, X, Y):
-        from mlsfqed.beam_model.peaks import fit_peaks, gaussian
+        from mlsfqed.beam_model.peaks import fit_peaks
         E = self.E
         W = beam_energy(Y, E)
         S = Y / W[:, None]
-        P = fit_peaks(S, E)
+        P = fit_peaks(S, E, shape=self.shape)
         ok = ~np.isnan(P[:, 0])
         X, Y, S, W, P = X[ok], Y[ok], S[ok], W[ok], P[ok]
         self.n_dropped = int((~ok).sum())
@@ -301,7 +330,7 @@ class PeakBeamModel(_CalibratedMixin):
         self.energy.fit(X, np.log(W))
         for k in range(3):
             self.peak[k].fit(X, T[:, k])
-        C = S - gaussian(E, P[:, 0], P[:, 1], P[:, 2])
+        C = S - self._profile(P[:, 0], P[:, 1], P[:, 2])
         self.cont.fit(X, C)
         Pc = np.stack([np.column_stack([r.predict(X) for r in m]) for m in self.cont.members])
         oob = ~self.cont.inbag
@@ -318,12 +347,15 @@ class PeakBeamModel(_CalibratedMixin):
         self.peak_fits = P
         return self
 
+    def _profile(self, A, pos, sig):
+        from mlsfqed.beam_model.peaks import gaussian, sqrt_edge
+        return (sqrt_edge if getattr(self, "shape", "gauss") == "sqrt_edge" else gaussian)(self.E, A, pos, sig)
+
     def _assemble(self, logW, T, Cs):
-        from mlsfqed.beam_model.peaks import gaussian
         lead = Cs.shape[:-1]
         C = self.cont.pca.inverse_transform(self.cont.csc.inverse_transform(Cs.reshape(-1, Cs.shape[-1])))
         C = C.reshape(*lead, -1)
-        S = C + gaussian(self.E, np.exp(T[..., 0]), T[..., 1], np.exp(T[..., 2]))
+        S = C + self._profile(np.exp(T[..., 0]), T[..., 1], np.exp(T[..., 2]))
         S = np.clip(S, 0, None)
         S = S / beam_energy(S, self.E)[..., None]
         return S * np.exp(logW)[..., None]

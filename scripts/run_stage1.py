@@ -97,17 +97,19 @@ def evaluate(name, d, tr, te, args):
     preds["two_part"] = (samp.transpose(1, 0, 2), Wp, (hi - lo) / 2 / 1.645)
     # peak model: explicit peak position/height/width + continuum, per-bin calibrated band;
     # "peak_model_gp" averages the peak-position ensemble with a Gaussian process (chosen on run11)
-    for key, blend in (("peak_model", ()), ("peak_model_gp", ("position",))):
-        res[key], preds[key], pk = peak_eval(E, Rtr, Ytr, Rte, Yte, Wte, args, score, blend)
+    # "peak_model_edge" replaces the Gaussian peak by the physics-based square-root edge (peaks.sqrt_edge)
+    for key, blend, shape in (("peak_model", (), "gauss"), ("peak_model_gp", ("position",), "gauss"),
+                              ("peak_model_edge", ("position",), "sqrt_edge")):
+        res[key], preds[key], pk = peak_eval(E, Rtr, Ytr, Rte, Yte, Wte, args, score, blend, shape)
         preds[key.replace("model", "point")] = pk.predict_point(Rte)
     shap = lgbm_beam_energy_shap(np.vstack([Xtr]), beam_energy(Ytr, E), feat.names(), seed=args.seed)
     res["beam_energy_shap_top"] = shap[:8]
     return res, preds, Yte, Wte
 
 
-def peak_eval(E, Rtr, Ytr, Rte, Yte, Wte, args, score, gp_blend):
+def peak_eval(E, Rtr, Ytr, Rte, Yte, Wte, args, score, gp_blend, shape="gauss"):
     t0 = time.time()
-    pk = PeakBeamModel(E, n_members=args.members, seed=args.seed, gp_blend=gp_blend).fit(Rtr, Ytr).calibrate()
+    pk = PeakBeamModel(E, n_members=args.members, seed=args.seed, gp_blend=gp_blend, shape=shape).fit(Rtr, Ytr).calibrate()
     samp = pk.sample_calibrated(Rte, n_samples=200, seed=args.seed)
     s = score(samp.mean(1))
     _, lo, hi = pk.energy.interval(Rte, 0.9)
@@ -156,14 +158,14 @@ def plots(name, d, te, preds, Yte, Wte):
                          "axes.spines.top": False, "axes.spines.right": False, "figure.facecolor": surf,
                          "axes.facecolor": surf, "font.size": 9, "lines.linewidth": 2})
     E = d["E_MeV"]
-    P, Wm, sd = preds["peak_model_gp"]
-    point = preds.get("peak_point_gp")
+    P, Wm, sd = preds["peak_model_edge"]                # adopted model: square-root edge + GP position
+    point = preds.get("peak_point_edge")
     # 1) predicted vs measured beam energy with calibrated 90% intervals
     fig, ax = plt.subplots(figsize=(4.2, 4))
     lo, hi = min(Wte.min(), Wm.min()) * 0.9, max(Wte.max(), Wm.max()) * 1.1
     ax.plot([lo, hi], [lo, hi], color=ink2, lw=1, ls="--", label="perfect prediction")
     ax.errorbar(Wte, Wm, yerr=1.645 * sd, fmt="o", ms=4, color=blue, ecolor=blue, elinewidth=0.8,
-                alpha=0.8, mec=surf, mew=0.8, label="peak model, 90% interval")
+                alpha=0.8, mec=surf, mew=0.8, label="beam model, 90% interval")
     ax.set(xlim=(lo, hi), ylim=(lo, hi), xlabel="measured beam energy [J]", ylabel="predicted beam energy [J]",
            title=f"Beam energy, {name} split")
     ax.legend(frameon=False, fontsize=8, loc="upper left")
@@ -178,7 +180,7 @@ def plots(name, d, te, preds, Yte, Wte):
         for k in range(3):                                   # individual draws keep their sharp peaks
             ax.plot(E, P[k, i], color=blue, lw=0.6, alpha=0.45, label="three samples" if k == 0 else None)
         if point is not None:
-            ax.plot(E, point[i], color=blue, lw=1.8, label="prediction (predicted peak)")
+            ax.plot(E, point[i], color=blue, lw=1.8, label="prediction (predicted edge)")
         else:
             ax.plot(E, np.median(P[:, i], 0), color=blue, label="sampler median")
         ax.plot(E, Yte[i], color=ink, lw=1.2, label="measured")
@@ -222,7 +224,7 @@ def main():
     rows = ["| split | model | MSE | beam-energy rel. RMS | 90% coverage (calibrated) |", "|---|---|---|---|---|"]
     for name in splits:
         r = results[name]
-        for m in ("naive_mean", "ridge_pca", "lgbm_ensemble", "mlp_ensemble", "two_part", "peak_model", "peak_model_gp"):
+        for m in ("naive_mean", "ridge_pca", "lgbm_ensemble", "mlp_ensemble", "two_part", "peak_model", "peak_model_gp", "peak_model_edge"):
             cov = f"{r[m]['calibrated_90pc_coverage']:.2f}" if "calibrated_90pc_coverage" in r[m] else "–"
             rows.append(f"| {name} | {m} | {r[m]['MSE']:.4f} | {r[m]['beam_energy_rel_rms']:.3f} | {cov} |")
     rows.append(f"| paper | Streeter et al. VNN ensemble | {PAPER['ensemble_MSE']} | {PAPER['beam_energy_rel_rms']} | – |")

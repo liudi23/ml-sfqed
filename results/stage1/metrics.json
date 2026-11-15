@@ -49,7 +49,7 @@
       "calibrated_90pc_coverage": 0.8933333333333333,
       "calibrated_mean_interval_halfwidth_rel": 0.21668737739720934,
       "CRPS_beam_energy_sampler_J": 0.04615149763347855,
-      "fit_seconds": 18.9
+      "fit_seconds": 19.1
     },
     "peak_model": {
       "MSE": 0.04756196421523001,
@@ -59,7 +59,7 @@
       "CRPS_beam_energy_sampler_J": 0.046230539731340475,
       "spectral_band90_coverage": 0.9204,
       "peak_height_ratio_point": 0.9313588404797706,
-      "fit_seconds": 27.4
+      "fit_seconds": 27.7
     },
     "peak_model_gp": {
       "MSE": 0.04583603132254474,
@@ -69,7 +69,17 @@
       "CRPS_beam_energy_sampler_J": 0.04622068071690968,
       "spectral_band90_coverage": 0.9190666666666667,
       "peak_height_ratio_point": 0.9302337189271002,
-      "fit_seconds": 90.5
+      "fit_seconds": 91.4
+    },
+    "peak_model_edge": {
+      "MSE": 0.04455986117237344,
+      "beam_energy_rel_rms": 0.12517890027564998,
+      "calibrated_90pc_coverage": 0.8933333333333333,
+      "calibrated_mean_interval_halfwidth_rel": 0.21219942723783153,
+      "CRPS_beam_energy_sampler_J": 0.04639822807002782,
+      "spectral_band90_coverage": 0.9060666666666667,
+      "peak_height_ratio_point": 0.9150411510351218,
+      "fit_seconds": 87.9
     },
     "beam_energy_shap_top": [
       [
@@ -127,7 +137,7 @@
       "calibrated_mean_interval_halfwidth_rel": 0.2733141427906298,
       "CRPS_beam_energy_raw_J": 0.05796276552970324,
       "CRPS_beam_energy_calibrated_J": 0.049940183798511506,
-      "fit_seconds": 5.0
+      "fit_seconds": 5.1
     },
     "mlp_ensemble": {
       "MSE": 0.04529514589135121,
@@ -156,7 +166,7 @@
       "CRPS_beam_energy_sampler_J": 0.04147130440529111,
       "spectral_band90_coverage": 0.8426754385964912,
       "peak_height_ratio_point": 0.960345568653141,
-      "fit_seconds": 27.5
+      "fit_seconds": 27.4
     },
     "peak_model_gp": {
       "MSE": 0.03123705422097087,
@@ -166,7 +176,17 @@
       "CRPS_beam_energy_sampler_J": 0.04146983928430428,
       "spectral_band90_coverage": 0.844561403508772,
       "peak_height_ratio_point": 0.9667402380161887,
-      "fit_seconds": 65.7
+      "fit_seconds": 65.3
+    },
+    "peak_model_edge": {
+      "MSE": 0.03004333958701652,
+      "beam_energy_rel_rms": 0.14694830475232093,
+      "calibrated_90pc_coverage": 0.9035087719298246,
+      "calibrated_mean_interval_halfwidth_rel": 0.2318998782585705,
+      "CRPS_beam_energy_sampler_J": 0.041520990270506916,
+      "spectral_band90_coverage": 0.8488157894736842,
+      "peak_height_ratio_point": 0.9670885763614054,
+      "fit_seconds": 76.1
     },
     "beam_energy_shap_top": [
       [

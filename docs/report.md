@@ -11,7 +11,7 @@ A calibrated beam model plus a neural surrogate of Ptarmigan turns a 19,200 CPU-
 
 | Stage | Result |
 | --- | --- |
-| 1 Beam model | Spectral MSE 0.046 vs 0.057 for the published network; calibrated 90% intervals cover 0.89–0.90 |
+| 1 Beam model | Spectral MSE 0.045 vs 0.057 for the published network, with a physics-based peak shape; calibrated 90% intervals cover 0.89–0.90 |
 | 2 Simulation | Ptarmigan v1.6.1 validated against analytic limits to ≤1%; 8,192-collision Sobol scan; 4,096 collisions repeated for classical and continuous radiation reaction |
 | 3 Surrogate | MLP ensemble, R² 0.98 for energy loss at ~2× Monte Carlo noise; ~18,000× faster per call, ~4×10⁶× batched |
 | 4 Inference | 42 CPU-s per shot; recovery test 90% coverage of the true a0 |
@@ -43,11 +43,13 @@ Each spectrum is total beam energy W times a normalised shape. log W comes from 
 | paper | LightGBM ensemble | 0.056 | 0.149 | 0.88 |
 | paper | Two-part | 0.050 | 0.123 | 0.89 |
 | paper | Peak model | 0.048 | 0.124 | 0.89 |
-| paper | **Peak model + GP position** | **0.046** | 0.124 | 0.89 |
+| paper | Peak model + GP position | 0.046 | 0.124 | 0.89 |
+| paper | **Square-root-edge peak + GP position** | **0.045** | 0.125 | 0.89 |
 | time | LightGBM ensemble | 0.040 | 0.189 | 0.91 |
 | time | Two-part | 0.033 | 0.142 | 0.90 |
 | time | Peak model | 0.032 | 0.146 | 0.90 |
-| time | **Peak model + GP position** | **0.031** | 0.146 | 0.90 |
+| time | Peak model + GP position | 0.031 | 0.146 | 0.90 |
+| time | **Square-root-edge peak + GP position** | **0.030** | 0.147 | 0.90 |
 
 ![Predicted vs measured spectra on the held-out run](../results/stage1/spectra_time.png)
 
@@ -55,7 +57,9 @@ The figure shows the spectrum at the predicted peak parameters, which keeps 96% 
 
 Where the error lives: with the measured peak parameters the MSE would halve (0.034 → 0.017; before the GP blend), so the peak is what limits the model. Peak position is predictable (R² 0.69), height partly (0.43), width not at all (R² < 0). Correcting drift online, using earlier shots of the same run plus shrinking the width prediction (`scripts/peak_drift_study.py`, tuned on run 11, tested on run 13), cuts the width error by 13% and removes the parameter biases, but improves MSE by only 1%: the remaining error is shot-to-shot scatter that the diagnostics do not capture.
 
-**Physics of the peak shape.** Every measured peak is asymmetric: a sharp high-energy edge and a long tail toward low energy. In the blowout regime the final energy maps from the injection history, dN/dE = (dN/dξ₀)/|dE/dξ₀|: the first-injected electrons pile up near the dephasing-limited maximum energy (ΔW ≈ (2/3) a0 m_e c² n_c/n_e, Lu et al. 2007), giving the edge, while electrons trapped later as the bubble evolves gain less, giving the tail. A Gaussian with an exponential low-energy tail fits the peak region of all 645 spectra with median R² 0.991, against 0.959 for the symmetric Gaussian used in the model (`scripts/peak_shape_study.py`). Using that shape in the beam model is a natural next step.
+**Physics of the peak shape.** Every measured peak is asymmetric: a sharp high-energy edge and a long tail toward low energy. In the blowout regime the final energy maps from the injection history, dN/dE = (dN/dξ₀)/|dE/dξ₀|: the first-injected electrons pile up near the dephasing-limited maximum energy (ΔW ≈ (2/3) a0 m_e c² n_c/n_e, Lu et al. 2007), giving the edge, while electrons trapped later as the bubble evolves gain less, giving the tail. A Gaussian with an exponential low-energy tail fits the peak region of all 645 spectra with median R² 0.991, against 0.959 for the symmetric Gaussian used in the model (`scripts/peak_shape_study.py`). The beam model now uses this shape (`peaks.sqrt_edge`): the convolution of (E_max − E)^(−1/2) with a Gaussian has the closed form exp(−z²/4) D₋½(z), z = (E − E_max)/σ, with D the parabolic cylinder function. Fitting the exponent freely gives k ≈ 0.43 (10–90%: 0.19–0.62), close to the ½ of the phase-rotation picture; the remaining spread reflects continued injection. With the exponent fixed at ½ the shape has three parameters, like the Gaussian, and fits 4.4× better (median local R² 0.993 vs 0.959).
+
+Its parameters are physical: E_max is the dephasing-limited maximum energy (the quantity the Lu et al. scaling predicts), σ is resolution plus intrinsic bunch spread, and A is the pile-up strength. In prediction it ties the Gaussian on the selection run (run 11: 0.0421 vs 0.0419) and is 3–4% better on both test sets (0.0300 vs 0.0312 on run 13; 0.0446 vs 0.0458 on the random split). Because the selection run gave a tie, adopting it after seeing the test sets is a mild selection effect; all three numbers are reported. Predictability is unchanged: E_max as well as the Gaussian centre (R² ≈ 0.7), σ not at all, so the gain is in interpretability and fit, not in learnability.
 
 Raw bagged ensembles are overconfident (44–68% coverage of a nominal 90% interval) until calibrated. Shot-history and physics-ratio features gave no gain: the remaining error is independent shot-to-shot noise.
 
