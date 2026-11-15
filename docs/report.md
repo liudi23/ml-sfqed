@@ -168,7 +168,7 @@ The surrogate makes a full Bayesian analysis of one collision shot cost 42 CPU-s
 
 **Likelihood.** Gaussian on the outgoing mean energy above 305 MeV and P70; the incoming beam marginalised over 50 of the 100 predicted spectra; measurement error from the spectrometer's energy uncertainty (9–14 MeV) and 5% on P70; surrogate variance added. Free: a0, longitudinal offset dz and bunch length (as Los et al.), optionally the transverse offset. dz prior ∝ |dz|^-1/2 (near focus). emcee, 32 walkers × 8,000 steps.
 
-**Recovery test.** On 48 held-out simulated collisions, the 90% interval contains the true a0 in 90% of cases and the true effective a0 in 83%.
+**Recovery test.** On 48 held-out simulated collisions, the 90% interval contains the true a0 in 90% of cases and the true effective a0 in 83%. The simulated shots are Ptarmigan runs that the surrogate never trained on, with Ptarmigan's own Monte Carlo noise, so surrogate error is part of the test. They are a best case in two respects: each shot is fitted with its true incoming spectrum (real shots have only predictions, 18 MeV error in mean energy), and the laser waist, duration, beam radius and divergence are fixed at their true values rather than nominal ones. The same holds for the model-comparison recovery below.
 
 ![Parameter recovery on simulated shots](figures/recovery_a0.png)
 
@@ -201,7 +201,7 @@ Evidence by Monte Carlo integration over the prior (MC error ≤ 0.035 in log Z)
 
 ![Model recovery on simulated shots](figures/model_recovery.png)
 
-The lean towards stochastic on classical shots is weak: their stochastic-vs-classical log Bayes factor has median +0.3 and never exceeds +1.2, so ten classical shots would sum to about −3 (ten stochastic shots: about +7). The +20 found on the real data is therefore not produced by this bias.
+The lean towards stochastic on classical shots is weak: their stochastic-vs-classical log Bayes factor has median +0.3 and never exceeds +1.2, so ten classical shots would sum to about −3 and ten stochastic shots to about +7. These recovery fits free the transverse offset; in that set-up the real data give +9.2 (every shot positive, 0.2–1.4), close to the stochastic expectation and far from the classical one, so the real-data preference is not produced by this bias.
 
 ![Summed log Bayes factors](figures/bayes_factors.png)
 
@@ -236,6 +236,7 @@ Summed natural-log Bayes factors over 10 shots. Los et al.'s values are differen
 - **Fixed nuisances**: laser waist, duration, beam radius and divergence are fixed in inference.
 - **Beam transfer**: the beam model is trained on 2021 no-collision shots and reaches the collision shots only through published predictions; about 30% of each beam's energy is in a secondary population the diagnostics cannot predict.
 - **Surrogate range**: valid inside the simulated ranges (a0 5–20, LMA rates).
+- **Recovery tests are a best case**: the simulated shots are fitted with their true incoming beam and true nuisance parameters. Repeating them with predicted beams of realistic error and nominal nuisance values would show how much the real-data conclusions depend on knowing the beam.
 
 ## Code, tests and reproducibility
 

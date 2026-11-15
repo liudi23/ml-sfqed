@@ -89,7 +89,9 @@ Only the effective a0 is recovered; the peak a0 at focus stays close to its prio
 
 ![Model recovery on simulated shots](docs/figures/model_recovery.png)
 
-With P70, stochastic shots are identified 93% of the time; with mean energy alone the comparison is no better than chance. Classical shots often come out marginally stochastic, but only by small margins (median log Bayes factor +0.3, never above +1.2): ten classical shots would sum to about −3, against **+20** on the real data.
+With P70, stochastic shots are identified 93% of the time; with mean energy alone the comparison is no better than chance. Classical shots often come out marginally stochastic, but only by small margins (median log Bayes factor +0.3, never above +1.2): ten classical shots would sum to about −3 and ten stochastic shots to about +7. The real data give **+9** in the same set-up (sideways offset free), close to the stochastic expectation.
+
+The simulated shots are held-out Ptarmigan runs, not surrogate output, so surrogate error is included. They are an easier test than the real shots in two ways: each is fitted with its true incoming beam, and the laser waist, duration, beam radius and divergence are fixed at their true values.
 
 #### Realistic beam uncertainty widens every field-strength estimate
 
