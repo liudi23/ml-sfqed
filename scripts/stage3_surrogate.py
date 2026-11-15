@@ -3,6 +3,8 @@
   python scripts/stage3_surrogate.py                 # all splits, full models
   python scripts/stage3_surrogate.py --quick         # small models, for a smoke test
   python scripts/stage3_surrogate.py --split beam    # one split: random | beam | a0
+  python scripts/stage3_surrogate.py --predictions   # beam split, MLP only: per-run test predictions
+                                                     # -> results/stage3/predictions_beam.json (for the figures)
 
 Splits:
   random  20% of runs held out at random
@@ -129,12 +131,41 @@ def run_split(name, X, Y, meta, Ne, Ng, quick):
     return res
 
 
+def save_predictions(X, Y, meta, cols=("loss_window_MeV", "e_P70")):
+    """Same split, calibration set and seeds as run_split("beam"); writes the MLP ensemble's test predictions
+    with calibrated 90% half-widths next to Ptarmigan's values."""
+    tr_all, te = split_masks("beam", X, meta)
+    rng = np.random.default_rng(1)
+    shots = meta.beam_shot_index[tr_all].unique()
+    cal_shots = rng.choice(shots, int(0.15 * len(shots)), replace=False)
+    cal = tr_all & meta.beam_shot_index.isin(cal_shots).values
+    tr = tr_all & ~cal
+    allc = list(Y.columns)
+    mlp = MLPEnsemble().fit(X[tr], Y[tr])
+    Pc, Sc = mlp.predict(X[cal])
+    factors = conformal_factors(Pc, Y[cal].values, interval_scale(Pc, Y[cal].values, allc, Sc))
+    Pm, Sm = mlp.predict(X[te])
+    out = {"split": "beam", "n_test": int(te.sum())}
+    for c in cols:
+        j = allc.index(c)
+        s = interval_scale(Pm, Y[te].values, allc, Sm)[:, j]
+        out[c] = {"ptarmigan": Y[te][c].round(4).tolist(), "surrogate": Pm[:, j].round(4).tolist(),
+                  "halfwidth90": (factors[j] * s).round(4).tolist()}
+    (OUT / "predictions_beam.json").write_text(json.dumps(out, separators=(",", ":")))
+    print("wrote", OUT / "predictions_beam.json")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--split", choices=["random", "beam", "a0", "all"], default="all")
     ap.add_argument("--quick", action="store_true")
+    ap.add_argument("--predictions", action="store_true")
     a = ap.parse_args()
     X, Y, meta, Ne, Ng = build()
+    if a.predictions:
+        OUT.mkdir(parents=True, exist_ok=True)
+        save_predictions(X, Y, meta)
+        return
     print(f"{len(X)} runs, {X.shape[1]} inputs, {Y.shape[1]} observables")
     OUT.mkdir(parents=True, exist_ok=True)
     for name in (["random", "beam", "a0"] if a.split == "all" else [a.split]):

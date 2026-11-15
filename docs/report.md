@@ -23,7 +23,7 @@ In this project we build an end-to-end pipeline that turns raw data from a stron
 **What it finds** on the 2021 data:
 
 - **The published per-shot beam uncertainty is about 3× too narrow.** Using the measured error widens the field-strength posteriors by ~46% and cuts the stochastic-vs-classical Bayes factor by ~40%.
-- **Spectral broadening favours stochastic quantum radiation reaction.** On every shot the outgoing spectrum is broader than the predicted incoming beam. Only stochastic emission reproduces this; classical and continuous models miss on 8 of 10 shots. The summed log Bayes factor over classical is +20 with realistic beam uncertainty (+9 with the transverse offset also free).
+- **Spectral broadening favours stochastic quantum radiation reaction.** On every shot the outgoing spectrum is broader than the predicted incoming beam. Only stochastic emission reproduces this: the measured P70 falls inside its 90% predicted range on 9 of 10 shots (the tenth just outside), against 2 of 10 for classical and continuous models. The summed log Bayes factor over classical is +20 with realistic beam uncertainty (+9 with the transverse offset also free).
 
 **Limitations.** The likelihood uses two summary observables (mean energy and the peak measure P70), which constrain only the effective field strength; a full-spectrum likelihood is the next step and the real test of the stochastic preference. The gamma-ray data are not yet used, and on low-loss shots our field strength is lower than Los et al.'s, who fit them. The beam model is trained on no-collision shots, and about 30% of each beam's energy sits in a secondary population the diagnostics cannot predict. Laser waist, duration, beam radius and divergence are fixed, and the surrogate is valid only inside the simulated ranges (a0 ≤ 20).
 
@@ -70,6 +70,12 @@ collision parameters ───────────────────�
 | 4 Inference | Gaussian likelihood on mean energy and P70; emcee (32 walkers); evidence by Monte Carlo over the prior | Collision parameters and model evidence per shot | Measured outgoing spectrum + 50 predicted incoming spectra → posteriors, log Z | Beam, measurement and surrogate variances added | Published vs measured beam spread; offset fixed vs free | `inference/posterior.py` |
 
 All tree models are LightGBM with `n_jobs=1` and fixed seeds, so every number in this report is reproducible. The Stage 2 beam pool was drawn from the first version of the beam model (Gaussian peak); the adopted square-root-edge model is used for everything downstream of it (beam-error measurement, inference, model comparison).
+
+### How each stage is checked
+
+![Predicted vs actual, one panel per stage](figures/pipeline_checks.png)
+
+Each panel compares a stage's prediction with something it did not see (dashed line: perfect agreement). (1) The beam model's predicted incoming mean energy against the measured value on 114 shots of a later run. (2) Ptarmigan's energy loss against the exact Landau–Lifshitz solution. (3) The surrogate against Ptarmigan on 1,641 collisions with unseen beams. (4) On the 10 real collision shots, the P70 each radiation-reaction model predicts after being fitted to the mean energy alone, against the measured P70: the classical predictions sit far above the line, the stochastic ones on it. For real shots the true laser strength is unknown, so panel 4 (a prediction of a measured quantity) and the recovery tests on simulated shots below are how Stage 4 is checked.
 
 ## Stage 1: calibrated beam model
 
@@ -211,7 +217,7 @@ Summed natural-log Bayes factors over 10 shots. Los et al.'s values are differen
 1. *Not a definition artefact.* Simulation and data pipelines give the same P70 for the same spectrum (ratio 0.997); extra smoothing moves observed P70 by <3%; smearing with the spectrometer resolution leaves simulated classical P70 far above the observed values.
 2. *Not out-of-distribution beams.* The predicted incoming beams sit inside the training pool (shape distance at the 4th–46th percentile).
 3. *Not surrogate error.* Direct Ptarmigan runs at the fitted parameters agree with the surrogate to 0.1–0.3 in P70 and 1–5 MeV in mean energy.
-4. *The physics.* Observed P70 is 0.72–0.93 of the predicted incoming value on all 10 shots. Fitting mean energy only and then predicting P70, stochastic reproduces it on every shot; classical and continuous predict a sharper or unchanged peak and miss on 8 of 10.
+4. *The physics.* Observed P70 is 0.72–0.93 of the predicted incoming value on all 10 shots. Fitting mean energy only and then predicting P70, the measured value falls inside the stochastic model's 90% predicted range on 9 of 10 shots (shot 0 lies just below it, at the 3rd percentile), while classical and continuous predict a sharper or unchanged peak and contain it on only 2 of 10.
 
 ![P70 on the 10 shots](figures/p70_shots.png)
 

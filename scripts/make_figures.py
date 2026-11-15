@@ -10,6 +10,8 @@ Writes docs/figures/:
   a0_eff.png           effective a0 per shot with published vs measured incoming-beam uncertainty
   recovery_a0.png      parameter recovery on 48 simulated shots: true vs inferred a0 and effective a0
   model_recovery.png   model comparison on 90 simulated shots: which model wins, per true model
+  pipeline_checks.png  one predicted-vs-actual panel per stage (needs results/stage3/predictions_beam.json from
+                       `stage3_surrogate.py --predictions` and per-shot arrays from beam_prediction_error.py)
 
   python scripts/make_figures.py recovery_a0 model_recovery   # only the named figures
 """
@@ -141,7 +143,7 @@ def p70_shots():
         for r in (r for r in rows if r["model"] == mdl):
             s = r["shot"]
             p5, p50, p95 = r["mean_only"]["pred_P70_p5_p50_p95"]
-            inside = 0.025 <= r["mean_only"]["pit_P70"] <= 0.975
+            inside = p5 <= r["obs_P70"] <= p95          # the drawn 90% range
             n_in += inside
             ax.plot([p5, p95], [s, s], color=COL[mdl], lw=7, alpha=0.28, solid_capstyle="round")
             ax.plot([p50, p50], [s - 0.22, s + 0.22], color=COL[mdl], lw=2)
@@ -273,9 +275,77 @@ def model_recovery():
     save(fig, "model_recovery.png")
 
 
+# ------------------------------------------------------------------ one predicted-vs-actual panel per stage
+def pipeline_checks():
+    fig, axes = plt.subplots(2, 2, figsize=(9.6, 9.0))
+
+    def diag(ax, lo, hi):
+        ax.plot([lo, hi], [lo, hi], color="#999", lw=1, ls="--", zorder=0)
+        ax.set(xlim=(lo, hi), ylim=(lo, hi), aspect="equal")
+
+    # 1 beam model: incoming mean energy on the held-out run
+    b = json.loads((R / "inference" / "beam_prediction_error.json").read_text())["mean_window_MeV"]
+    ps = b["per_shot"]
+    t, m = np.array(ps["measured"]), np.array(ps["median"])
+    ax = axes[0, 0]
+    ax.vlines(t, ps["p5"], ps["p95"], color=COL["stochastic"], alpha=0.25, lw=1.2)
+    ax.plot(t, m, "o", color=COL["stochastic"], ms=3.5, mec="white", mew=0.4)
+    lo, hi = min(t.min(), np.min(ps["p5"])) - 10, max(t.max(), np.max(ps["p95"])) + 10
+    diag(ax, lo, hi)
+    ax.set(xlabel="Measured mean energy ≥305 MeV (MeV)", ylabel="Predicted from diagnostics (MeV)")
+    ax.set_title(f"1  Beam model vs measurement\n{len(t)} held-out shots: error {b['rmse']:.0f} MeV, "
+                 f"90% bands cover {b['our_coverage90']:.0%}", fontsize=9, loc="left")
+
+    # 2 simulation: classical radiation reaction vs the analytic Landau-Lifshitz solution
+    rows = [ln.split() for ln in (R / "ptarmigan_validation" / "validation_summary.txt").read_text().splitlines()[1:6]]
+    g0 = 1000.0 / 0.51099895
+    a0 = np.array([float(r[0]) for r in rows])
+    sim = (g0 - np.array([float(r[1]) for r in rows])) * 0.51099895
+    ana = (g0 - np.array([float(r[2]) for r in rows])) * 0.51099895
+    ax = axes[0, 1]
+    ax.plot(ana, sim, "o", color=COL["classical"], ms=6, mec="white", mew=0.6)
+    for x, y, a in zip(ana, sim, a0):
+        ax.annotate(f"a0={a:.0f}", (x, y), xytext=(6, -10), textcoords="offset points", fontsize=7.5, color="#555")
+    diag(ax, 0, 460)
+    ax.set(xlabel="Analytic energy loss, Landau–Lifshitz (MeV)", ylabel="Ptarmigan energy loss (MeV)")
+    ax.set_title("2  Simulation vs exact solution\nclassical radiation reaction, 1 GeV electron: agree to 10⁻⁴",
+                 fontsize=9, loc="left")
+
+    # 3 surrogate vs Ptarmigan on collisions with unseen beams
+    d = json.loads((R / "stage3" / "predictions_beam.json").read_text())["loss_window_MeV"]
+    y, p, h = (np.array(d[k]) for k in ("ptarmigan", "surrogate", "halfwidth90"))
+    ax = axes[1, 0]
+    ax.plot(y, p, ".", color=COL["continuous"], ms=2.5, alpha=0.45)
+    diag(ax, min(y.min(), p.min()) - 3, max(y.max(), p.max()) + 3)
+    r2 = 1 - np.mean((p - y) ** 2) / np.var(y)
+    ax.set(xlabel="Ptarmigan energy loss ≥305 MeV (MeV)", ylabel="Surrogate prediction (MeV)")
+    ax.set_title(f"3  Surrogate vs simulation\n{len(y):,} unseen collisions: R² {r2:.3f}, "
+                 f"90% intervals cover {np.mean(np.abs(p - y) <= h):.0%}", fontsize=9, loc="left")
+
+    # 4 inference: P70 predicted by each model (fitted to mean energy only) vs measured, real shots
+    s4 = json.loads((R / "diagnostics" / "p70" / "summary.json").read_text())["per_shot_model"]
+    ax = axes[1, 1]
+    for k, mdl in enumerate(("classical", "stochastic")):
+        rr = [r for r in s4 if r["model"] == mdl]
+        o = np.array([r["obs_P70"] for r in rr])
+        q = np.array([r["mean_only"]["pred_P70_p5_p50_p95"] for r in rr])
+        x = o + (k - 0.5) * 0.012
+        ax.vlines(x, q[:, 0], q[:, 2], color=COL[mdl], alpha=0.35, lw=2)
+        inside = np.mean((o >= q[:, 0]) & (o <= q[:, 2]))
+        ax.plot(x, q[:, 1], "o", color=COL[mdl], ms=5, mec="white", mew=0.6,
+                label=f"{NAME[mdl]}: measured inside 90% range on {inside * 10:.0f}/10")
+    diag(ax, 1.2, 3.2)
+    ax.set(xlabel="Measured P70 after the collision (1/GeV)", ylabel="Predicted P70 (1/GeV)")
+    ax.legend(loc="upper left", fontsize=7.8)
+    ax.set_title("4  Radiation-reaction models vs measurement\n10 real collision shots, each model fitted "
+                 "to mean energy only", fontsize=9, loc="left")
+    title(fig, "Every stage checked against something it did not see (dashed line: perfect agreement)")
+    save(fig, "pipeline_checks.png")
+
+
 if __name__ == "__main__":
     OUT.mkdir(parents=True, exist_ok=True)
     figs = {"p70_shots": p70_shots, "bayes_factors": bayes_factors, "a0_eff": a0_eff,
-            "recovery_a0": recovery_a0, "model_recovery": model_recovery, "sweep_gif": sweep_gif}
+            "recovery_a0": recovery_a0, "model_recovery": model_recovery, "pipeline_checks": pipeline_checks, "sweep_gif": sweep_gif}
     for name in sys.argv[1:] or figs:
         figs[name]()

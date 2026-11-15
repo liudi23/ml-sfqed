@@ -48,7 +48,10 @@ def main():
         lo, hi = np.percentile(P[:, :, j], [5, 95], axis=1)
         res[name] = {"rmse": float(np.sqrt(np.mean((med - T[:, j]) ** 2))),
                      "our_spread_median": float(np.median(P[:, :, j].std(1))),
-                     "our_coverage90": float(np.mean((T[:, j] >= lo) & (T[:, j] <= hi)))}
+                     "our_coverage90": float(np.mean((T[:, j] >= lo) & (T[:, j] <= hi))),
+                     # per held-out shot, for the predicted-vs-measured figure (scripts/make_figures.py)
+                     "per_shot": {"measured": T[:, j].round(4).tolist(), "median": med.round(4).tolist(),
+                                  "p5": lo.round(4).tolist(), "p95": hi.round(4).tolist()}}
     dl = load()
     Ed = dl["E_MeV"]
     sp = np.array([[[spectrum_observables(Ed, p)[k] for k in ("P70", "mean_window_MeV")] for p in s["pre_dNdE"]]

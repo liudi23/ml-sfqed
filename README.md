@@ -22,7 +22,7 @@ In this project we build an end-to-end pipeline that turns raw data from a stron
 | --- | --- |
 | **~1.6 million× faster inference** | A full Bayesian fit of one collision shot takes **42 CPU-seconds**, against ~19,200 CPU-hours with direct simulation (Los et al. 2024). |
 | **Published beam uncertainty is ~3× too narrow** | The incoming-beam error measured on held-out shots (P70 0.26, mean energy 18.1 MeV) is 2.4–2.8× the published per-shot spread (0.11, 6.4 MeV). Using it widens the field-strength estimates by ~46% and cuts the stochastic-vs-classical Bayes factor by ~40%. |
-| **Spectral broadening favours stochastic quantum radiation reaction** | On all 10 shots the outgoing spectrum is broader than the incoming one. Only stochastic emission reproduces this; classical and continuous models miss on 8 of 10. Summed log Bayes factor over classical: **+20** with realistic beam uncertainty (+34 with the published spread). |
+| **Spectral broadening favours stochastic quantum radiation reaction** | On all 10 shots the outgoing spectrum is broader than the incoming one. Only stochastic emission reproduces this: the measured P70 falls inside its 90% predicted range on 9 of 10 shots (the tenth just outside), against 2 of 10 for classical and continuous models. Summed log Bayes factor over classical: **+20** with realistic beam uncertainty (+34 with the published spread). |
 | **Better beam prediction, with honest uncertainty** | Spectral MSE **0.045 vs 0.057** for the published network ensemble (22% lower), with a physics-based peak shape; calibrated 90% intervals cover 89–90% of held-out shots (raw ensembles: 44–68%). |
 | **Accurate surrogate** | MLP ensemble reproduces Ptarmigan to R² 0.98 (energy loss) at ~2× its Monte Carlo noise; ~18,000× faster per call, ~4×10⁶× batched. |
 
@@ -39,6 +39,12 @@ Two-page summary: **[docs/summary.md](docs/summary.md)** · full write-up: **[do
 Every stage's uncertainty is checked on data it never saw: conformal calibration and coverage tests (stages 1 and 3), validation against analytic limits (stage 2), and recovery tests on simulated shots with known answers plus posterior predictive checks (stage 4).
 
 ## Results
+
+### How each stage is checked
+
+![Predicted vs actual, one panel per stage](docs/figures/pipeline_checks.png)
+
+Each panel compares a stage's prediction with something it did not see (dashed line: perfect agreement). (1) The beam model's predicted incoming mean energy against the measured value on 114 shots of a later run. (2) Ptarmigan's energy loss against the exact Landau–Lifshitz solution. (3) The surrogate against Ptarmigan on 1,641 collisions with unseen beams. (4) On the 10 real collision shots, the P70 each radiation-reaction model predicts after being fitted to the mean energy alone, against the measured P70: the classical predictions sit far above the line, the stochastic ones on it. For real shots the true laser strength is unknown, so panel 4 (a prediction of a measured quantity) and the recovery tests on simulated shots below are how Stage 4 is checked.
 
 ### Stage 1: beam prediction from diagnostics
 

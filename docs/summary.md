@@ -25,7 +25,7 @@ The peak of the beam model is not a Gaussian but the shape expected from the phy
 
 **The published beam uncertainty is too narrow.** On held-out shots the incoming-beam error is 0.26 in P70 and 18.1 MeV in mean energy, 2.4–2.8× the per-shot spread of the published predictions. Propagating the measured error widens the field-strength posteriors by ~46% and lowers the stochastic-vs-classical Bayes factor by ~40%.
 
-**Spectral broadening favours stochastic radiation reaction.** On all 10 shots the outgoing spectrum is broader than the predicted incoming beam. Fitting each model to the mean energy alone and predicting P70, only stochastic emission reproduces the broadening; classical and continuous models miss on 8 of 10. Direct Ptarmigan runs at the fitted parameters rule out surrogate error, and the effect is not a definition or out-of-distribution artefact.
+**Spectral broadening favours stochastic radiation reaction.** On all 10 shots the outgoing spectrum is broader than the predicted incoming beam. Fitting each model to the mean energy alone and predicting P70, only stochastic emission reproduces the broadening: the measured P70 is inside its 90% predicted range on 9 of 10 shots, against 2 of 10 for classical and continuous models. Direct Ptarmigan runs at the fitted parameters rule out surrogate error, and the effect is not a definition or out-of-distribution artefact.
 
 ![P70 on the 10 collision shots](figures/p70_shots.png)
 
