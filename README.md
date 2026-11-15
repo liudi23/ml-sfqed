@@ -126,7 +126,7 @@ tests/           unit tests (pytest), run in CI with ruff
 ## Data and references
 
 - **Gemini LWFA data:** M. J. V. Streeter et al., *Laser wakefield accelerator modelling with variational neural networks*, High Power Laser Sci. Eng. 11, e9 (2023), [doi:10.1017/hpl.2022.47](https://doi.org/10.1017/hpl.2022.47). Data: [doi:10.5281/zenodo.7510352](https://doi.org/10.5281/zenodo.7510352) (CC BY 4.0).
-- **Collision shots and model evidences:** E. E. Los et al., [arXiv:2407.12071](https://arxiv.org/abs/2407.12071); High Power Laser Sci. Eng. (2024), [doi:10.1017/hpl.2024.83](https://doi.org/10.1017/hpl.2024.83). Public data from [ELos385/RadiationReaction](https://github.com/ELos385/RadiationReaction), fetched locally and not redistributed here; figures show derived quantities.
+- **Collision shots and model evidences:** E. E. Los et al., *Observation of quantum effects on radiation reaction in strong fields*, Nature Communications, [doi:10.1038/s41467-025-67918-8](https://doi.org/10.1038/s41467-025-67918-8) ([arXiv:2407.12071](https://arxiv.org/abs/2407.12071)); E. E. Los et al., *A Bayesian framework to investigate radiation reaction in strong fields*, High Power Laser Sci. Eng. (2024), [doi:10.1017/hpl.2024.83](https://doi.org/10.1017/hpl.2024.83). Public data from [ELos385/RadiationReaction](https://github.com/ELos385/RadiationReaction), fetched locally and not redistributed here; figures show derived quantities.
 - **Ptarmigan:** T. G. Blackburn et al., Phys. Plasmas 30, 093903 (2023).
 
 ## Author

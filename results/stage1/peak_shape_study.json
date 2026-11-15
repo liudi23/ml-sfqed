@@ -1,0 +1,21 @@
+{
+ "n": 645,
+ "gauss": {
+  "R2_median": 0.9586245167657866,
+  "R2_p10": 0.9338239475055319,
+  "unexplained_mean": 0.04351921478336812
+ },
+ "emg": {
+  "R2_median": 0.9907705981971977,
+  "R2_p10": 0.9832831468881186,
+  "unexplained_mean": 0.010136496809506188
+ },
+ "caustic": {
+  "R2_median": 0.9504336048868374,
+  "R2_p10": 0.9199194030605028,
+  "unexplained_mean": 0.051644547568624265
+ },
+ "emg_better_than_gauss": 1.0,
+ "asymmetry_low_over_high_median": 10.87500000000002,
+ "asymmetry_gt1_frac": 1.0
+}
