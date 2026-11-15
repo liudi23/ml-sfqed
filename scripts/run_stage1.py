@@ -123,7 +123,7 @@ def check_fits(fig, name):
     for ax in fig.axes:
         for axis in (ax.xaxis, ax.yaxis):
             lo, hi = sorted(axis.get_view_interval())
-            for tick in axis.get_major_ticks():
+            for tick in axis.get_major_ticks() + axis.get_minor_ticks():
                 ticklabels.add(id(tick.label1))
                 if lo - 1e-9 <= tick.get_loc() <= hi + 1e-9:   # matplotlib only draws ticks inside the view
                     texts.append(tick.label1)

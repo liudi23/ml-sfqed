@@ -9,7 +9,10 @@ Splits:
   beam    20% of the measured shots held out, with every beam drawn from them (new beams)
   a0      train on a0 <= 16.5, test on a0 > 16.5 (extrapolation to the strongest fields)
 Metrics per observable: R^2, RMSE, RMSE relative to the Monte Carlo noise floor, 90% coverage of the
-MLP ensemble's interval, and the speed-up over Ptarmigan. Writes results/stage3/metrics_<split>.json.
+MLP ensemble's interval before and after calibration, and the speed-up over Ptarmigan.
+Calibration: 15% of the training shots (whole shots, so they behave like new beams) are held back; per
+observable, the interval sqrt(ensemble_sd^2 + MC_noise^2) is stretched so that 90% of those runs fall
+inside (split conformal). Writes results/stage3/metrics_<split>.json.
 """
 
 from __future__ import annotations
@@ -46,7 +49,20 @@ def split_masks(name, X, meta, seed=0):
     return ~test, test
 
 
-def scores(P, Yte, cols, sd=None):
+def interval_scale(P, Y, cols, sd):
+    """Per observable: total predictive sd (ensemble + Monte Carlo noise of the target)."""
+    noise = np.array([NOISE.get(c, 0.0) for c in cols])
+    return np.sqrt(sd ** 2 + noise ** 2)
+
+
+def conformal_factors(P, Y, S, level=0.9):
+    """Split-conformal multiplier per observable: quantile of |y - mu| / s on calibration runs."""
+    z = np.abs(Y - P) / S
+    n = len(z)
+    return np.quantile(z, min(1.0, np.ceil((n + 1) * level) / n), axis=0)
+
+
+def scores(P, Yte, cols, sd=None, factors=None):
     out = {}
     for j, c in enumerate(cols):
         y, p = Yte[:, j], P[:, j]
@@ -58,14 +74,24 @@ def scores(P, Yte, cols, sd=None):
             # interval = ensemble spread combined with the Monte Carlo noise of the target itself
             s = np.sqrt(sd[:, j] ** 2 + NOISE.get(c, 0.0) ** 2)
             r["coverage90"] = float(np.mean(np.abs(p - y) <= 1.645 * s))
+            if factors is not None:
+                r["coverage90_calibrated"] = float(np.mean(np.abs(p - y) <= factors[j] * s))
+                r["calibration_stretch"] = float(factors[j] / 1.645)
+                r["halfwidth90_calibrated_mean"] = float(np.mean(factors[j] * s))
         out[c] = r
     return out
 
 
 def run_split(name, X, Y, meta, Ne, Ng, quick):
-    tr, te = split_masks(name, X, meta)
+    tr_all, te = split_masks(name, X, meta)
+    # hold back 15% of the training shots (whole shots) for calibration
+    rng = np.random.default_rng(1)
+    shots = meta.beam_shot_index[tr_all].unique()
+    cal_shots = rng.choice(shots, int(0.15 * len(shots)), replace=False)
+    cal = tr_all & meta.beam_shot_index.isin(cal_shots).values
+    tr = tr_all & ~cal
     cols = list(Y.columns)
-    res = {"split": name, "n_train": int(tr.sum()), "n_test": int(te.sum())}
+    res = {"split": name, "n_train": int(tr.sum()), "n_calibration": int(cal.sum()), "n_test": int(te.sum())}
     t0 = time.time()
     tree = TreeSurrogate(quick=quick).fit(X[tr], Y[tr])
     res["tree_fit_s"] = round(time.time() - t0, 1)
@@ -76,10 +102,18 @@ def run_split(name, X, Y, meta, Ne, Ng, quick):
     t0 = time.time()
     mlp = MLPEnsemble(quick=quick).fit(X[tr], Y[tr])
     res["mlp_fit_s"] = round(time.time() - t0, 1)
+    Pc, Sc = mlp.predict(X[cal])
+    factors = conformal_factors(Pc, Y[cal].values, interval_scale(Pc, Y[cal].values, cols, Sc))
     t0 = time.time()
     Pm, Sm = mlp.predict(X[te])
     res["mlp_predict_s_per_sample"] = (time.time() - t0) / te.sum()
-    res["mlp"] = scores(Pm, Y[te].values, cols, Sm)
+    res["mlp"] = scores(Pm, Y[te].values, cols, Sm, factors)
+    # single-call latency (one collision at a time, as a naive MCMC would call it)
+    x1 = X[te].iloc[:1]
+    t0 = time.time()
+    for _ in range(200):
+        mlp.predict(x1)
+    res["mlp_single_call_s"] = (time.time() - t0) / 200
     # spectra: electron spectrum per electron (150 bins); score mean energy implied by it and shape error
     spec = SpectrumSurrogate(quick=quick).fit(X[tr], Ne[tr])
     Sp = spec.predict(X[te])
@@ -91,6 +125,7 @@ def run_split(name, X, Y, meta, Ne, Ng, quick):
     res["ptarmigan_mean_wall_s"] = float(meta.wall_s[te].mean())
     res["speedup_tree"] = res["ptarmigan_mean_wall_s"] / res["tree_predict_s_per_sample"]
     res["speedup_mlp"] = res["ptarmigan_mean_wall_s"] / res["mlp_predict_s_per_sample"]
+    res["speedup_mlp_single_call"] = res["ptarmigan_mean_wall_s"] / res["mlp_single_call_s"]
     return res
 
 
@@ -106,12 +141,14 @@ def main():
         r = run_split(name, X, Y, meta, Ne, Ng, a.quick)
         tag = "_quick" if a.quick else ""
         (OUT / f"metrics_{name}{tag}.json").write_text(json.dumps(r, indent=2))
-        print(f"\n== split {name}: train {r['n_train']}, test {r['n_test']} | speed-up tree {r['speedup_tree']:.0f}x, "
-              f"MLP {r['speedup_mlp']:.0f}x (Ptarmigan {r['ptarmigan_mean_wall_s']:.1f} s/run)")
-        print(f"{'observable':22s}{'tree R2':>9s}{'MLP R2':>9s}{'MLP RMSE/noise':>16s}{'MLP cov90':>11s}")
+        print(f"\n== split {name}: train {r['n_train']}, calibration {r['n_calibration']}, test {r['n_test']} | "
+              f"speed-up: MLP batch {r['speedup_mlp']:.0f}x, single call {r['speedup_mlp_single_call']:.0f}x "
+              f"(Ptarmigan {r['ptarmigan_mean_wall_s']:.1f} s/run)")
+        print(f"{'observable':22s}{'tree R2':>9s}{'MLP R2':>9s}{'RMSE/noise':>12s}{'cov90 raw':>11s}{'calibrated':>12s}{'stretch':>9s}")
         for c in Y.columns:
             t, m = r["tree"][c], r["mlp"][c]
-            print(f"{c:22s}{t['R2']:9.3f}{m['R2']:9.3f}{m.get('RMSE_over_MC_noise', float('nan')):16.2f}{m['coverage90']:11.2f}")
+            print(f"{c:22s}{t['R2']:9.3f}{m['R2']:9.3f}{m.get('RMSE_over_MC_noise', float('nan')):12.2f}"
+                  f"{m['coverage90']:11.2f}{m['coverage90_calibrated']:12.2f}{m['calibration_stretch']:9.2f}")
         es = r["electron_spectrum"]
         print(f"electron spectrum: relative L1 {es['rel_L1']:.3f}, implied mean-energy RMSE {es['mean_energy_RMSE_MeV']:.2f} MeV")
 
