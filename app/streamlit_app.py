@@ -27,7 +27,8 @@ from mlsfqed.simulation.ptarmigan import p70
 from mlsfqed.surrogate.api import NOMINAL, TRAINING_RANGE, Surrogate
 
 logging.getLogger("emcee").setLevel(logging.ERROR)
-st.set_page_config(page_title="ML-SFQED demo", page_icon="⚛️", layout="wide")
+st.set_page_config(page_title="ML-SFQED demo · Di Liu", page_icon="⚛️", layout="wide",
+                   menu_items={"About": "ML-SFQED by Di Liu: https://github.com/liudi23/ml-sfqed"})
 
 MODELS = ("stochastic", "continuous", "classical")
 NAME = {"stochastic": "Stochastic (quantum)", "continuous": "Continuous (quantum)", "classical": "Classical (Landau–Lifshitz)"}
@@ -97,14 +98,19 @@ with st.sidebar.expander("Laser and beam details"):
     c["length_um"] = st.slider("Bunch length (µm)", *map(float, TRAINING_RANGE["length_um"]), NOMINAL["length_um"], 0.5)
     c["div_mrad"] = st.slider("Divergence (mrad)", *map(float, TRAINING_RANGE["div_mrad"]), NOMINAL["div_mrad"], 0.1)
 st.sidebar.caption("Ranges are the surrogate's training ranges. Fixed: 0.8 µm laser, head-on collision, LMA rates.")
+st.sidebar.divider()
+st.sidebar.markdown("**Di Liu**  \n[GitHub: liudi23/ml-sfqed](https://github.com/liudi23/ml-sfqed)  \n"
+                    "[Report](https://github.com/liudi23/ml-sfqed/blob/main/docs/report.md) · "
+                    "[Demo notebook](https://github.com/liudi23/ml-sfqed/blob/main/notebooks/demo.ipynb)")
 
 # ---------------------------------------------------------------- header
 st.title("ML-SFQED: radiation reaction in milliseconds")
+st.markdown("By **Di Liu** · Project on GitHub: [github.com/liudi23/ml-sfqed](https://github.com/liudi23/ml-sfqed)")
 st.markdown(
     "A neural surrogate of the **Ptarmigan** QED Monte Carlo, trained on 8,192 simulated laser–electron collisions, "
     "predicts what an electron beam looks like after colliding with an intense laser, for three models of "
     "radiation reaction. Set the beam and the collision on the left; everything below is computed live, with "
-    "calibrated 90% intervals. [Code and write-up on GitHub](https://github.com/liudi23/ml-sfqed)."
+    "calibrated 90% intervals."
 )
 tabs = st.tabs(["Predict", "Laser strength scan", "Timing & alignment", "Beam uncertainty", "Inference", "Results on 2021 data"])
 
