@@ -10,8 +10,8 @@ Uncertainty-aware ML pipeline from real Gemini laser–plasma data to a fast sur
 
 ## Status
 - **Stage 1 (done, first version):** beam model with an explicit spectral peak + per-bin calibrated beam sampler. On the authors' split: spectral MSE 0.048 vs 0.057 published; beam-energy error 12.4% (a tie); 90% spectral band covers 92% of bins. Held-out last run: 14% beam-energy error; band covers 90% of on-beam bins.
-- **Stage 2 (in progress):** Ptarmigan v1.6.1 built and validated against Landau–Lifshitz, quantum RR and weak-field Compton theory (`results/ptarmigan_validation/`); parameter scan next.
-- **Stage 3 (planned):** surrogate for the simulation and surrogate-accelerated Bayesian inference of collision parameters.
+- **Stage 2 (scan done):** Ptarmigan v1.6.1 built and validated against Landau–Lifshitz, quantum RR and weak-field Compton theory (`results/ptarmigan_validation/`); 4,096-run Sobol scan over beam and laser parameters with LMA rates; beam-chirp sensitivity check next.
+- **Stage 3 (first results):** MLP-ensemble and tree surrogates of the 4,096-run Ptarmigan scan (`results/stage3/`). On held-out beams: electron energy loss R² ≈ 0.98; ~18,000× faster than Ptarmigan per call (7.7 s → 0.4 ms); conformal calibration lifts 90% interval coverage from 74% to 90%. Extrapolation to a0 > 16.5: R² ≈ 0.97, 88% coverage. Next: surrogate-accelerated Bayesian inference of collision parameters.
 
 See [docs/roadmap.md](docs/roadmap.md) for the stage plan and how this relates to Streeter et al. (2023) and Los et al. (2024/2025).
 

@@ -23,9 +23,10 @@ Status key: ✅ done · 🔄 in progress · ⬜ to do.
 - ✅ Scan design and runner (`scripts/stage2_scan.py`, `src/mlsfqed/simulation/`): 4,096 Sobol-sampled collisions over a pool of 1,935 beams (645 measured spectra + 2 calibrated Stage 1 draws each); a0 5–20, waist 2–3 µm, 35–55 fs, transverse offset 0–5 µm, longitudinal offset ±250 µm (denser near focus), beam radius, bunch length and divergence. Resumable, parallel, Parquet output with config hash and timing.
 - **Rates: LMA.** LCFA matches LMA in energy loss (0.07% at a0 = 20) but overproduces photons 2.4–4.7× in weaker collisions and shifts the critical energy, so LMA is used; its tables cap a0 at 20.
 - Observables: electron mean energy (all and ≥305 MeV) and P70 as defined by Los et al. (after 10 MeV smoothing), energy spread; photon yield, mean and total energy, critical energy, energy-weighted angular spread; binned electron and photon spectra. Monte Carlo noise at 5,000 electrons: mean energy ±1–1.5 MeV, P70 ±4%, photon yield ±1%. Energy balance (electron loss vs photon energy) holds to ±2 MeV.
-- ⬜ Full scan (~7 CPU-hours), then a beam-chirp sensitivity check.
+- ✅ Full scan: 4,096 runs (`results/stage3/` uses it).
+- ⬜ Beam-chirp sensitivity check.
 
-## Stage 3 – Fast surrogate and inference ⬜
+## Stage 3 – Fast surrogate and inference 🔄
 - Surrogates for the observables (tree baseline; MLP / small neural operator for spectra; deep ensembles for uncertainty), target ≥1000× faster than Ptarmigan.
 - Demos: propagate real shot-to-shot beam uncertainty to observable distributions; run MCMC over a0, offsets and bunch duration for a shot and compare wall time with the ~19,200 CPU-hours per inference reported by Los et al.
 
