@@ -49,6 +49,8 @@ pip install -e ".[demo]"
 jupyter lab notebooks/demo.ipynb
 ```
 
+**Interactive dashboards:** [demo results](https://claude.ai/artifact/XEdpaS7s1hFDRD8tiAAN9m) (pick a beam and a0, see the three models' predictions, the inference and the real shots) · [main findings](https://claude.ai/artifact/HCH4ktQL5VD4A8GABAPzmG).
+
 The [demo notebook](notebooks/demo.ipynb) (executed, outputs included) runs on the trained models shipped in [`models/`](models/README.md), with no simulation needed:
 
 1. predict Ptarmigan's outputs for a collision, with 90% intervals, in microseconds;
