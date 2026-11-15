@@ -49,7 +49,7 @@ pip install -e ".[demo]"
 jupyter lab notebooks/demo.ipynb
 ```
 
-**Interactive dashboards:** [demo results](https://claude.ai/artifact/XEdpaS7s1hFDRD8tiAAN9m) (pick a beam and a0, see the three models' predictions, the inference and the real shots) · [main findings](https://claude.ai/artifact/HCH4ktQL5VD4A8GABAPzmG).
+**Interactive app:** [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://ml-sfqed.streamlit.app) — set an incoming beam and the collision, and the surrogates predict all three radiation-reaction models live; run inference on a toy shot; browse the results on the 2021 data. Run it locally with `pip install -e ".[app]"` and `streamlit run app/streamlit_app.py`.
 
 The [demo notebook](notebooks/demo.ipynb) (executed, outputs included) runs on the trained models shipped in [`models/`](models/README.md), with no simulation needed:
 
@@ -207,6 +207,7 @@ results/         metrics, figures and validation runs
 docs/            summary.md (2 pages), report.md (full), roadmap.md, figures/
 models/          trained surrogates (3 radiation-reaction models) and example beams
 notebooks/       demo.ipynb: end-to-end demo with outputs
+app/             streamlit_app.py: interactive demo (live surrogate, inference)
 tests/           data-free unit tests (peak shape, observables, surrogate), run in CI with ruff
 ```
 
