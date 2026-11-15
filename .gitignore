@@ -15,3 +15,4 @@ _to_delete/
 .ruff_cache/
 .pytest_cache/
 results/stage1/_online/
+results/stage3/*_quick.json
