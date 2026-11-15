@@ -78,7 +78,7 @@ P70's lower R² reflects its small spread relative to Monte Carlo noise (ceiling
 ## Limitations and next steps
 
 - Inference uses two summary observables, which constrain only the effective field strength. A **full-spectrum likelihood** that models the incoming spectrum's shape error is the next step, and the confirmation test for the stochastic preference.
-- The inferred effective a0 sits below Los et al.'s on most shots (3–7 vs 7–13); not yet explained.
+- Our effective a0 (the field the beam actually sees) is not Los et al.'s ã0 (the peak a0 at focus), so the two should not be compared directly. A direct Ptarmigan check at focus (`scripts/a0_consistency_check.py`) recovers their a0 ≈ 7–8 on the shots with clear energy loss; on the five shots whose loss is within the 18 MeV incoming-beam error, electron data alone cannot pin a0. Their analysis also fits the gamma-ray signal; adding a photon observable needs the spectrometer response modelled first.
 - Laser waist, duration, beam radius and divergence are fixed in inference.
 
 ## Reproduce
@@ -104,6 +104,7 @@ python scripts/infer_los2024.py recovery --n 48 && python scripts/infer_los2024.
 python scripts/compare_models.py recovery --n 30 && python scripts/compare_models.py shots
 python scripts/diagnose_p70.py                     # P70 diagnostics             -> results/diagnostics/p70/
 python scripts/a0_sweep.py && python scripts/make_figures.py   # figures in docs/figures/
+python scripts/a0_consistency_check.py             # direct Ptarmigan check of a0 vs Los et al.
 ```
 
 Runs are seeded and LightGBM is single-threaded, so results are deterministic.

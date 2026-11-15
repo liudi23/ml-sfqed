@@ -107,6 +107,17 @@ P70's lower R² reflects its small spread relative to Monte Carlo noise (the noi
 
 Only the effective field strength is constrained: offsets and bunch length stay prior-dominated, and a larger a0 at an offset gives the same energy loss.
 
+**Comparison with Los et al.'s field strength.** Our effective a0 (3–7 on most shots) is lower than their ã0 (6.7–9.4, one shot 13.3), but the two are different quantities: ã0 is the peak a0 at focus, while the effective a0 is the field the electrons actually experience after the offsets. Both codes use the same peak-field definition of a0, and the 2.1 vs 2.5 µm waist changes the energy loss by only 2–3 MeV. A direct Ptarmigan check removes the surrogate and the geometry (`scripts/a0_consistency_check.py`: median predicted incoming beam, head-on at focus, stochastic emission, a0 = 3–12):
+
+| Shots | Energy loss (predicted incoming − measured) | a0 at focus that reproduces it |
+| --- | --- | --- |
+| 3, 4, 6 | 35–43 MeV | 7.2–8.2 (Los et al.: 6.7–7.7) |
+| 0 | 77 MeV | ≈ 12.5 (Los et al.: 9.4) |
+| 1, 2, 5, 7 | 11–23 MeV | 3.5–5.5 |
+| 8, 9 | ≤ 5 MeV | not determined |
+
+At focus, Los et al.'s a0 of 7–9 implies 31–50 MeV of loss. On the shots with that much loss we recover their value. On the other five, the implied loss is 10–30 MeV smaller, about 1–1.5 times the measured incoming-beam error (18 MeV), so the electron spectrum alone cannot tell a weak field from a beam that started low. Los et al. also fit the gamma-ray signal, which constrains a0 independently of the incoming beam. The difference is therefore a matter of what the data constrain, not a disagreement in the physics or the code.
+
 ## Radiation-reaction model comparison
 
 Evidence by Monte Carlo integration over the prior (MC error ≤ 0.035 in log Z), one surrogate per model trained on the same collisions.
@@ -142,7 +153,7 @@ Summed natural-log Bayes factors over 10 shots. Los et al.'s values are differen
 ## Limitations and next steps
 
 - **Two summary observables** constrain only the effective a0. A full-spectrum likelihood, with the incoming spectrum's shape error modelled explicitly, is the next step and the confirmation test for the stochastic preference.
-- **Effective a0** is lower than Los et al.'s on most shots (3–7 vs their 7–13); the difference is not yet explained.
+- **Photon data are not used.** Los et al. also fit the gamma-ray spectrometer signal. A critical energy fitted to the public photon spectra is 45–60 MeV on every shot, against 13–35 MeV from Ptarmigan for a0 = 3–12, so that signal can only enter after forward-modelling the detector response.
 - **Fixed nuisances**: laser waist, duration, beam radius and divergence are fixed in inference.
 - **Beam transfer**: the beam model is trained on 2021 no-collision shots and reaches the collision shots only through published predictions.
 
