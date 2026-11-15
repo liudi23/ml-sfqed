@@ -293,9 +293,11 @@ def to_electron_spectrum(Y, E_MeV):
 
 # ---------------------------------------------------------------- peak-aware model
 class PeakBeamModel(_CalibratedMixin):
-    """dW/dE = W * (continuum(E) + Gaussian peak(A, mu, sigma)), renormalised.
+    """dW/dE = W * (continuum(E) + peak(A, position, sigma)), renormalised.
 
-    W, peak height (log A), position mu and width (log sigma) each come from a bagged LightGBM ensemble;
+    The peak is a Gaussian (shape="gauss", position = centre) or the physics-based square-root edge
+    (shape="sqrt_edge", position = edge energy E_max; adopted, see peaks.sqrt_edge).
+    W, peak height (log A), position and width (log sigma) each come from a bagged LightGBM ensemble;
     the continuum (spectrum minus fitted peak) from 10 PCA coefficients. All ensembles share the same
     bags, so out-of-bag residuals of every part are paired by training shot and drawn together.
     """
