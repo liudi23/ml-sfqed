@@ -32,12 +32,25 @@ def ptarmigan_bin() -> Path:
     return Path(os.environ.get("PTARMIGAN_BIN", DEFAULT_BIN))
 
 
+MODELS = ("stochastic", "classical", "continuous")
+
+
 def render_yaml(p: dict, spectrum_file: str, E_grid: np.ndarray, n_electrons: int, seed: int,
-                rates: str = "lma") -> str:
+                rates: str = "lma", model: str = "stochastic") -> str:
+    """model: radiation-reaction model, as compared by Los et al.:
+      stochastic  quantum-stochastic emission (default; LMA or LCFA rates)
+      classical   classical emission, Landau-Lifshitz radiation reaction (LMA classical rates)
+      continuous  quantum-continuous: classical with the Gaunt-factor correction (Ptarmigan: LCFA only)"""
+    if model not in MODELS:
+        raise ValueError(model)
+    if model == "continuous":
+        rates = "lcfa"
+    classical = {"stochastic": "false", "classical": "true", "continuous": "gaunt_factor_corrected"}[model]
     """p: a0, waist_um, fwhm_fs, dx_um, dy_um, dz_um, radius_um, length_um, div_mrad, charge_pC, chirp."""
     step = E_grid[1] - E_grid[0]
     return f"""control:
   lcfa: {"true" if rates == "lcfa" else "false"}
+  classical: {classical}
   radiation_reaction: true
   pair_creation: false
   rng_seed: {seed}
@@ -153,12 +166,12 @@ def observables(e_E, e_h, g_E, g_h, st, n_electrons_real):
 
 
 def run_one(p: dict, spectrum: np.ndarray, E_grid: np.ndarray, n_electrons: int, seed: int, workdir=None,
-            rates: str = "lma"):
+            rates: str = "lma", model: str = "stochastic"):
     """Run one collision. spectrum: dN/dE on E_grid (any normalisation). Returns (record, Ne, Ng)."""
     with tempfile.TemporaryDirectory(dir=workdir) as tmp:
         tmp = Path(tmp)
         np.savetxt(tmp / "spectrum.txt", spectrum, fmt="%.6e")
-        y = render_yaml(p, "spectrum.txt", E_grid, n_electrons, seed, rates)
+        y = render_yaml(p, "spectrum.txt", E_grid, n_electrons, seed, rates, model)
         (tmp / "run.yml").write_text(y)
         t0 = time.time()
         r = subprocess.run([str(ptarmigan_bin()), "run.yml"], check=False, cwd=tmp, capture_output=True, text=True)
