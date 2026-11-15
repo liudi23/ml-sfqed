@@ -40,24 +40,6 @@ Every stage's uncertainty is checked on data it never saw: conformal calibration
 
 ## Results
 
-### Spectral broadening separates the radiation-reaction models
-
-Each model is fitted to the outgoing mean energy alone, then asked to predict P70, a measure of how sharp the spectral peak is. Only stochastic emission predicts the observed broadening:
-
-![P70 on the 10 collision shots](docs/figures/p70_shots.png)
-
-A dedicated diagnostic (`scripts/diagnose_p70.py`) rules out a definition artefact, out-of-distribution beams and surrogate error, using direct Ptarmigan runs at the fitted parameters.
-
-### The evidence depends on how honest the beam uncertainty is
-
-![Summed log Bayes factors](docs/figures/bayes_factors.png)
-
-The stochastic preference drops by ~40% once the measured beam error replaces the published spread (+34 → +20), and roughly halves again when the transverse offset is also free (+9), a parameter the original analysis had to fix for cost. Energy loss alone carries no model information, because a free a0 absorbs the difference.
-
-### Realistic beam uncertainty widens every field-strength estimate
-
-![Effective a0 per shot](docs/figures/a0_eff.png)
-
 ### Stage 1: beam prediction from diagnostics
 
 | Split | Model | Spectral MSE | Beam-energy error | 90% coverage |
@@ -70,6 +52,10 @@ Each spectrum is modelled as a continuum plus a **physics-based peak**: near dep
 
 ![Held-out spectra](results/stage1/spectra_time.png)
 
+### Stage 2: validated QED Monte Carlo
+
+Ptarmigan v1.6.1 reproduces analytic limits to ≤1%: classical Landau–Lifshitz energy loss (to 10⁻⁴), linear Compton yield scaling (a0²) and the Klein–Nishina-corrected energy loss. The training scan is 8,192 collisions on a Sobol design over a0 (5–20), timing, transverse offset, laser waist and duration, and beam size, with incoming spectra drawn from the Stage 1 beam pool; 4,096 of them were repeated with classical and quantum-continuous radiation reaction (same seeds). The animation at the top is from this simulation.
+
 ### Stage 3: surrogate accuracy on unseen beams
 
 | Observable | R² | Error / MC noise | 90% coverage, raw → calibrated |
@@ -80,6 +66,30 @@ Each spectrum is modelled as a continuum plus a **physics-based peak**: near dep
 | log₁₀ photons per electron | 0.994 | 6.5 | 0.94 → 0.90 |
 
 P70's lower R² reflects its small spread relative to Monte Carlo noise (ceiling ~0.95), not a worse fit.
+
+### Stage 4: inference and model comparison on the 10 collision shots
+
+Each shot is fitted to its outgoing mean energy and P70 with the incoming beam marginalised over 50 predicted spectra, in **42 CPU-seconds** (emcee, surrogate in the likelihood). On 48 simulated shots with known answers the 90% intervals contain the true a0 90% of the time; on 90 simulated shots the model comparison identifies stochastic data 93% of the time.
+
+#### Realistic beam uncertainty widens every field-strength estimate
+
+![Effective a0 per shot](docs/figures/a0_eff.png)
+
+With two summary observables only the effective a0 (the field the electrons experience) is constrained. Using the measured beam error instead of the published spread widens its intervals by ~46% (26% with the transverse offset free).
+
+#### Spectral broadening separates the radiation-reaction models
+
+Each model is fitted to the outgoing mean energy alone, then asked to predict P70, a measure of how sharp the spectral peak is. Only stochastic emission predicts the observed broadening:
+
+![P70 on the 10 collision shots](docs/figures/p70_shots.png)
+
+A dedicated diagnostic (`scripts/diagnose_p70.py`) rules out a definition artefact, out-of-distribution beams and surrogate error, using direct Ptarmigan runs at the fitted parameters.
+
+#### The evidence depends on how honest the beam uncertainty is
+
+![Summed log Bayes factors](docs/figures/bayes_factors.png)
+
+The stochastic preference drops by ~40% once the measured beam error replaces the published spread (+34 → +20), and roughly halves again when the transverse offset is also free (+9), a parameter the original analysis had to fix for cost. Energy loss alone carries no model information, because a free a0 absorbs the difference.
 
 ## Limitations and next steps
 

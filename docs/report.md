@@ -32,7 +32,7 @@ In this project we build an end-to-end pipeline that turns raw data from a stron
 | 1 Beam model | Spectral MSE 0.045 vs 0.057 for the published network, with a physics-based peak shape; calibrated 90% intervals cover 0.89–0.90 |
 | 2 Simulation | Ptarmigan v1.6.1 validated against analytic limits to ≤1%; 8,192-collision Sobol scan; 4,096 collisions repeated for classical and continuous radiation reaction |
 | 3 Surrogate | MLP ensemble, R² 0.98 for energy loss at ~2× Monte Carlo noise; ~18,000× faster per call, ~4×10⁶× batched |
-| 4 Inference | 42 CPU-s per shot; recovery test 90% coverage of the true a0 |
+| 4 Inference and model comparison | 42 CPU-s per shot; recovery test 90% coverage of the true a0; stochastic data identified 93% of the time; stochastic vs classical +20 (summed log Bayes factor, measured beam error) |
 
 ## Motivation
 
@@ -150,7 +150,11 @@ P70's lower R² reflects its small spread relative to Monte Carlo noise (the noi
 
 **Uncertainty propagation.** For 114 held-out shots at a fixed collision (a0 = 12), 100 calibrated beam samples per shot through the surrogate: 11,400 evaluations in 0.08 s, against ~114 CPU-hours in Ptarmigan. Direct Ptarmigan runs on three shots match the surrogate's per-shot mean loss to within 3 MeV.
 
-## Inference on the public collision shots
+## Stage 4: inference and model comparison
+
+The surrogate makes a full Bayesian analysis of one collision shot cost 42 CPU-seconds. The same likelihood serves two purposes: estimating the collision parameters of each shot, and comparing the three radiation-reaction models through their evidence.
+
+### Parameter inference on the public collision shots
 
 **Likelihood.** Gaussian on the outgoing mean energy above 305 MeV and P70; the incoming beam marginalised over 50 of the 100 predicted spectra; measurement error from the spectrometer's energy uncertainty (9–14 MeV) and 5% on P70; surrogate variance added. Free: a0, longitudinal offset dz and bunch length (as Los et al.), optionally the transverse offset. dz prior ∝ |dz|^-1/2 (near focus). emcee, 32 walkers × 8,000 steps.
 
@@ -175,7 +179,7 @@ Only the effective field strength is constrained: offsets and bunch length stay 
 
 On the three shots with 34–43 MeV loss the two agree to about 1. Elsewhere they part in both directions: Los et al.'s ⟨ã0⟩ changes little from shot to shot while the electron energy loss ranges from about 0 to 77 MeV. Two things explain this. First, on the five low-loss shots the loss that a0 ≈ 7–8 would cause (31–40 MeV) exceeds the observed one by 10–30 MeV, about 1–1.5 times the incoming-beam error (18 MeV), so the electron spectrum alone cannot tell a weak field from a beam that started low. Second, Los et al. also fit the gamma-ray spectrometer signal, which constrains a0 independently of the incoming beam, and their forward model has additional effective parameters (electron bunch duration, energy-dependent timing) that can absorb part of the electron energy loss. Settling it shot by shot needs the photon data in our likelihood, which requires forward-modelling their gamma spectrometer (see Limitations).
 
-## Radiation-reaction model comparison
+### Radiation-reaction model comparison
 
 Evidence by Monte Carlo integration over the prior (MC error ≤ 0.035 in log Z), one surrogate per model trained on the same collisions.
 
@@ -214,6 +218,10 @@ Summed natural-log Bayes factors over 10 shots. Los et al.'s values are differen
 - **Fixed nuisances**: laser waist, duration, beam radius and divergence are fixed in inference.
 - **Beam transfer**: the beam model is trained on 2021 no-collision shots and reaches the collision shots only through published predictions; about 30% of each beam's energy is in a secondary population the diagnostics cannot predict.
 - **Surrogate range**: valid inside the simulated ranges (a0 5–20, LMA rates).
+
+## Code, tests and reproducibility
+
+Code: [github.com/liudi23/ml-sfqed](https://github.com/liudi23/ml-sfqed), MIT licence ([CITATION.cff](../CITATION.cff) for citation). One script per step (README, *Reproduce*); every result in this report comes from a script, with fixed seeds and single-threaded LightGBM, so reruns give identical numbers. Data-free unit tests (peak shape against direct integration, beam energy, mean energy, P70, photon critical energy, the surrogate's derived inputs and ensemble) run in continuous integration with ruff on every push. A two-page version of this report is [summary.md](summary.md).
 
 ## References
 
