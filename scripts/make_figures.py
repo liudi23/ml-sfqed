@@ -80,20 +80,21 @@ def sweep_gif(hold_ms=2200, step_ms=110, steps=8, end_ms=4000):
         i = int(np.floor(s)); f = s - i
         return arr[i] if f == 0 or i + 1 >= len(arr) else (1 - f) * arr[i] + f * arr[i + 1]
 
-    fig = plt.figure(figsize=(8.0, 6.2))
-    gs = fig.add_gridspec(2, 1, height_ratios=[2.2, 1], hspace=0.38, left=0.1, right=0.97, top=0.88, bottom=0.09)
+    fig = plt.figure(figsize=(9.6, 6.2))
+    # legend, a0 label and P70 readout sit in a right-hand margin, so they never cover the curves
+    gs = fig.add_gridspec(2, 1, height_ratios=[2.2, 1], hspace=0.38, left=0.085, right=0.75, top=0.88, bottom=0.09)
     ax, bx = fig.add_subplot(gs[0]), fig.add_subplot(gs[1])
     fig.suptitle("Classical radiation reaction sharpens the peak; stochastic emission spreads it",
-                 x=0.1, ha="left", fontsize=10.5, fontweight="bold")
-    fig.text(0.1, 0.905, "Ptarmigan, one measured Gemini beam, head-on at focus; outgoing electron spectra as a0 rises",
-             fontsize=9, color="#555")
+                 x=0.085, ha="left", fontsize=10.5, fontweight="bold")
+    fig.text(0.085, 0.905, "Ptarmigan runs: the same measured Gemini beam (dashed) collides head-on at focus; "
+             "coloured lines are the outgoing spectra as a0 rises", fontsize=9, color="#555")
     ax.plot(E, d["incoming"], ls="--", color=COL["incoming"], lw=1.5, label="Incoming beam")
     lines = {m: ax.plot(E, Y[m][0], color=COL[m], lw=2.4 if m == "stochastic" else 1.8, label=NAME[m])[0] for m in MODELS}
     ymax = max(Y[m].max() for m in MODELS) * 1.05
     ax.set(xlim=(E[0], E[-1]), ylim=(0, ymax), xlabel="Electron energy (MeV)", ylabel="E dN/dE, normalised (1/GeV)")
-    ax.legend(loc="upper left", fontsize=8.5)
-    label = ax.text(0.98, 0.9, "", transform=ax.transAxes, ha="right", fontsize=17, fontweight="bold")
-    ax_txt = ax.text(0.98, 0.72, "", transform=ax.transAxes, ha="right", va="top", fontsize=9, family="monospace")
+    ax.legend(loc="upper left", bbox_to_anchor=(1.02, 1.0), fontsize=8.5, borderaxespad=0)
+    label = ax.text(1.03, 0.52, "", transform=ax.transAxes, ha="left", fontsize=17, fontweight="bold")
+    ax_txt = ax.text(1.03, 0.40, "", transform=ax.transAxes, ha="left", va="top", fontsize=9, family="monospace")
     bx.axhline(d["incoming_P70"], ls="--", color=COL["incoming"], lw=1)
     bx.text(a0s[-1], d["incoming_P70"] - 0.06, "incoming beam", color="#777", fontsize=8, ha="right", va="top")
     for m in MODELS:
