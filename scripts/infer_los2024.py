@@ -54,7 +54,7 @@ def model_path(quick):
 
 
 def mcmc_kw(quick):
-    return {"nwalkers": 24, "nsteps": 600, "burn": 200} if quick else {"nwalkers": 32, "nsteps": 4000, "burn": 1500}
+    return {"nwalkers": 24, "nsteps": 1500, "burn": 500} if quick else {"nwalkers": 32, "nsteps": 8000, "burn": 3000}
 
 
 def q(x, ps=(5, 16, 50, 84, 95)):
@@ -63,13 +63,13 @@ def q(x, ps=(5, 16, 50, 84, 95)):
 
 # ---------------------------------------------------------------- recovery test
 def _recovery_task(args):
-    run_row, quick, seed = args
+    run_row, quick, seed, dz_prior = args
     m = load_model(model_path(quick))
     pool = np.load(ROOT / "data" / "processed" / "stage2" / "beam_pool.npz")
     beam = pool["dWdE_J_per_GeV"][[int(run_row["beam_index"])]]
     fixed = {k: run_row[k] for k in COLLISION if k not in SETUPS["offset"]}
     post = ShotPosterior(m, beam, run_row["obs_mean"], run_row["obs_p70"], meas_sd_mean=10.0,
-                         free=SETUPS["offset"], fixed=fixed)
+                         free=SETUPS["offset"], fixed=fixed, dz_prior=dz_prior)
     t0 = time.time()
     chain, diag = run_mcmc(post, seed=seed, **mcmc_kw(quick))
     a_eff = post.a0_eff(chain)
@@ -82,7 +82,7 @@ def _recovery_task(args):
     return out
 
 
-def recovery(n, quick, workers):
+def recovery(n, quick, workers, dz_prior):
     m = load_model(model_path(quick))
     X, Y, meta, _, _ = build()
     cal = meta.run_id.isin(m["calibration_run_ids"]).values          # runs the surrogate never trained on
@@ -98,18 +98,20 @@ def recovery(n, quick, workers):
         rows.append(r)
     t0 = time.time()
     with ProcessPoolExecutor(workers) as ex:
-        res = list(ex.map(_recovery_task, [(r, quick, k) for k, r in enumerate(rows)]))
-    summ = {"n": n, "a0_coverage90": float(np.mean([r["a0_in90"] for r in res])),
+        res = list(ex.map(_recovery_task, [(r, quick, k, dz_prior) for k, r in enumerate(rows)]))
+    bias = float(np.median([r["a0_eff"]["p50"] - r["true_a0_eff"] for r in res]))
+    summ = {"n": n, "dz_prior": dz_prior, "a0_eff_median_bias": bias, "a0_coverage90": float(np.mean([r["a0_in90"] for r in res])),
             "a0_eff_coverage90": float(np.mean([r["a0_eff_in90"] for r in res])),
             "median_wall_s_per_shot": float(np.median([r["wall_s"] for r in res])),
             "total_wall_s": time.time() - t0, "quick": quick}
     OUT.mkdir(parents=True, exist_ok=True)
-    (OUT / f"recovery{'_quick' if quick else ''}.json").write_text(json.dumps({"summary": summ, "runs": res}, indent=2))
-    print(f"recovery test on {n} simulated shots the surrogate never saw (4 parameters free, 2 observables):")
+    (OUT / f"recovery_{dz_prior}{'_quick' if quick else ''}.json").write_text(json.dumps({"summary": summ, "runs": res}, indent=2))
+    print(f"recovery test on {n} simulated shots the surrogate never saw (4 parameters free, 2 observables), "
+          f"dz prior: {dz_prior}:")
     print(f"  true value inside 90% interval: a0 {summ['a0_coverage90']:.2f}, effective a0 {summ['a0_eff_coverage90']:.2f}")
     print(f"  median wall time per shot: {summ['median_wall_s_per_shot']:.0f} s (one core)")
     w = np.array([r["a0_eff"]["p95"] - r["a0_eff"]["p5"] for r in res])
-    print(f"  effective-a0 90% interval width: median {np.median(w):.1f}")
+    print(f"  effective-a0 90% interval width: median {np.median(w):.1f}; median bias {bias:+.2f}")
 
 
 # ---------------------------------------------------------------- real shots
@@ -122,7 +124,7 @@ def beam_rmse():
 
 
 def _shot_task(args):
-    k, setup, unc, quick, K, seed = args
+    k, setup, unc, quick, K, seed, dz_prior = args
     m = load_model(model_path(quick))
     data = load()
     E = data["E_MeV"]
@@ -134,7 +136,7 @@ def _shot_task(args):
         dE = f["shot 1/Electrons/Energy_uncertainty[MeV]"][()]
     meas_sd = float(np.trapezoid(s["post_dNdE"] * dE, E) / np.trapezoid(s["post_dNdE"], E))
     post = ShotPosterior(m, beams, obs["mean_window_MeV"], obs["P70"], meas_sd, free=SETUPS[setup],
-                         beam_rmse=beam_rmse() if unc == "calibrated" else None)
+                         beam_rmse=beam_rmse() if unc == "calibrated" else None, dz_prior=dz_prior)
     t0 = time.time()
     chain, diag = run_mcmc(post, seed=seed, **mcmc_kw(quick))
     wall = time.time() - t0
@@ -153,22 +155,23 @@ def _shot_task(args):
            "a0_eff": q(a_eff), "pit_mean_window": float(pit[0]), "pit_P70": float(pit[1]), **diag}
     for i, name in enumerate(post.free):
         res[name] = q(chain[:, i])
-    np.save(OUT / "chains" / f"shot{s['shot']}_{setup}_{unc}{'_quick' if quick else ''}.npy", chain.astype(np.float32))
+    tag = ("_quick" if quick else "") + ("_dzuniform" if dz_prior == "uniform" else "")
+    np.save(OUT / "chains" / f"shot{s['shot']}_{setup}_{unc}{tag}.npy", chain.astype(np.float32))
     return res
 
 
-def shots(quick, workers, K, unc):
+def shots(quick, workers, K, unc, dz_prior):
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / "chains").mkdir(exist_ok=True)
     uncs = ["published", "calibrated"] if unc == "both" else [unc]
-    tasks = [(k, setup, u, quick, K, 100 + k) for u in uncs for setup in SETUPS for k in range(10)]
+    tasks = [(k, setup, u, quick, K, 100 + k, dz_prior) for u in uncs for setup in SETUPS for k in range(10)]
     t0 = time.time()
     with ProcessPoolExecutor(workers) as ex:
         res = list(ex.map(_shot_task, tasks))
     total = time.time() - t0
-    tag = "_quick" if quick else ""
+    tag = ("_quick" if quick else "") + ("_dzuniform" if dz_prior == "uniform" else "")
     summ = {"total_wall_s": total, "cpu_s": float(sum(r["wall_s"] for r in res)), "workers": workers,
-            "los_cpu_hours_per_inference": LOS_CPU_HOURS, "quick": quick}
+            "los_cpu_hours_per_inference": LOS_CPU_HOURS, "quick": quick, "dz_prior": dz_prior}
     summ["speedup_per_inference"] = LOS_CPU_HOURS * 3600 / (summ["cpu_s"] / len(res))
     (OUT / f"los2024_posteriors{tag}.json").write_text(json.dumps({"summary": summ, "results": res}, indent=2))
     print(f"{'shot':>4s} {'beam unc.':>10s} {'setup':>7s} {'eff. a0 (16-84%)':>18s} {'a0 (16-84%)':>16s} {'r_offset um':>12s} "
@@ -229,11 +232,13 @@ def main():
     ap.add_argument("--workers", type=int, default=os.cpu_count())
     ap.add_argument("--beams", type=int, default=50, help="predicted incoming beams used per shot (of 100)")
     ap.add_argument("--beam-unc", choices=["published", "calibrated", "both"], default="both")
+    ap.add_argument("--dz-prior", choices=["focus", "uniform"], default="focus",
+                    help="longitudinal-offset prior: concentrated near focus (as the scan) or uniform")
     a = ap.parse_args()
     if a.what == "recovery":
-        recovery(a.n, a.quick, a.workers)
+        recovery(a.n, a.quick, a.workers, a.dz_prior)
     else:
-        shots(a.quick, a.workers, a.beams, a.beam_unc)
+        shots(a.quick, a.workers, a.beams, a.beam_unc, a.dz_prior)
 
 
 if __name__ == "__main__":

@@ -6,7 +6,9 @@ Likelihood (electron observables only; definitions match Los et al.):
     predicted mean = <E>_in,k - loss(theta, beam_k),   predicted P70 = P70(theta, beam_k),
   Gaussian errors with variance = surrogate variance (calibrated) + measurement variance.
   The beam uncertainty is marginalised by averaging the likelihood over the K predictions.
-Priors: uniform over the surrogate's training range. Parameters not inferred are fixed (FIXED).
+Priors: uniform over the surrogate's training range, except the longitudinal offset with dz_prior="focus":
+density proportional to |dz|^(-1/2) on +-250 um - the distribution the scan was drawn from (half within
++-62 um), expressing that collisions are timed near focus. Parameters not inferred are fixed (FIXED).
 """
 
 from __future__ import annotations
@@ -37,7 +39,7 @@ class ShotPosterior:
     """log-posterior for one shot. free: names of inferred parameters (subset of PRIOR)."""
 
     def __init__(self, model, beams_dWdE, obs_mean, obs_p70, meas_sd_mean, free=("a0", "dz_um", "length_um"),
-                 fixed=None, beam_rmse=None):
+                 fixed=None, beam_rmse=None, dz_prior="uniform"):
         """beam_rmse: optional (mean energy, P70) realistic prediction errors of the incoming beam. If given,
         the spread of the supplied beam predictions is widened per observable to that error by adding
         the missing variance (max(0, rmse^2 - spread^2)); None uses the predictions as they are."""
@@ -65,6 +67,8 @@ class ShotPosterior:
         self.noise = np.array([model["mc_noise"].get(t, 0.0) for t in TARGETS])
         self.lo = np.array([PRIOR[k][0] for k in self.free])
         self.hi = np.array([PRIOR[k][1] for k in self.free])
+        self.dz_prior = dz_prior
+        self.i_dz = self.free.index("dz_um") if "dz_um" in self.free else None
 
     def inputs(self, theta):
         """theta (W, n_free) -> surrogate inputs for every (walker, beam) pair, walker-major."""
@@ -93,6 +97,8 @@ class ShotPosterior:
             v = var + self.meas_var
             ll = -0.5 * (((self.obs - pred) ** 2) / v + np.log(2 * np.pi * v)).sum(-1)    # (W, K)
             lp[ok] = logsumexp(ll, axis=1) - np.log(self.K)
+            if self.dz_prior == "focus" and self.i_dz is not None:
+                lp[ok] += -0.5 * np.log(np.abs(theta[ok, self.i_dz]) + 1e-3)
         return lp
 
     def a0_eff(self, theta):
