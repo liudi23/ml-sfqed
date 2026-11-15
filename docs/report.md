@@ -27,12 +27,14 @@ In this project we build an end-to-end pipeline that turns raw data from a stron
 - **Knowing what the data can tell you.** Tests on simulated shots show which quantities a measurement pins down (here the effective field and, through P70, the radiation-reaction model, but not the peak field), which helps decide what a future experiment should measure.
 - **Predicting the beam.** Laser-wakefield operators get a predicted spectrum with honest error bars for shots where the beam cannot be measured directly.
 
-**Why it improves on the existing analysis** (Los et al. 2024, direct simulation in the likelihood):
+**How it builds on earlier work.** Los et al. (2024) carried out the first Bayesian analysis of these collision shots, with the full simulation inside the likelihood. This project follows their observables (mean energy and P70), their three radiation-reaction models and their inference set-up, and extends them:
 
 - **Speed**: 42 CPU-seconds per shot instead of ~19,200 CPU-hours, which makes recovery tests, extra free parameters and sensitivity studies affordable.
 - **Honest beam uncertainty**: the incoming-beam error, measured on held-out shots, is 2.4–2.8× the published per-shot spread; we propagate the measured one.
 - **Better beam prediction**: spectral MSE 0.045 against 0.057 for the published network ensemble, with a physics-based peak shape whose parameters mean something (the dephasing-limited maximum energy).
 - **Every stage checked on unseen data**: coverage tests for both learned models, validation against analytic limits for the simulation, recovery tests and posterior predictive checks for the inference.
+
+The two analyses agree that quantum radiation reaction describes the data better than classical. The spectral broadening (P70) used here also separates stochastic from continuous emission, which the full-spectrum analysis left undecided.
 
 **What it finds** on the 2021 data:
 
@@ -55,6 +57,20 @@ Radiation reaction is the recoil an electron feels from the light it emits. When
 The hard part is the incoming beam. Each shot's electron spectrum cannot be measured before the collision, so it is predicted from laser and plasma diagnostics, and that prediction error feeds straight into any claim about radiation reaction. Streeter et al. (2023) trained a neural-network ensemble to make these predictions and released the data. Los et al. (2024) used them to infer collision parameters and compare radiation-reaction models, at ~19,200 CPU-hours per inference.
 
 This project asks two questions. Can a beam model with well-tested uncertainties, combined with a fast stand-in for the simulation, repeat that analysis at a small fraction of the cost? And is the published uncertainty on the predicted incoming beam realistic, or does it understate how wrong those predictions can be?
+
+## Radiation-reaction models
+
+An electron of energy γmc² crossing a laser of normalised amplitude a0 radiates, and the recoil from that radiation is radiation reaction. How strongly quantum effects matter is set by the quantum parameter χ ≈ 2γa0ħω/(mc²) for a head-on collision, the electric field in the electron's rest frame in units of the Schwinger field. At Gemini (γ ≈ 1,200, a0 ≈ 10–20) χ ≈ 0.1–0.2: classical physics overestimates the loss, but the regime is not yet fully quantum. Three descriptions are compared, the same three as Los et al. (reviews: Di Piazza et al. 2012; Blackburn 2020; Gonoskov et al. 2022):
+
+| Model | What it assumes | Energy loss | Effect on the spectrum | In Ptarmigan |
+| --- | --- | --- | --- | --- |
+| **Classical** | Radiation as a continuous classical force, the Landau–Lifshitz equation (Landau & Lifshitz 1975) | Largest; radiated power ∝ χ² with no limit set by the electron's own energy | Deterministic. Faster electrons lose more, so the spectrum **narrows** | `classical: true` |
+| **Continuous (quantum)** | The same deterministic force, reduced by the Gaunt factor g(χ) = P_quantum/P_classical (Kirk et al. 2009; Ridgers et al. 2017; Niel et al. 2018) | Reduced to the correct quantum average (g ≈ 0.76, 0.63, 0.53 at χ = 0.06, 0.12, 0.18 in our validation) | Still deterministic: narrows, a little less than classical | `classical: gaunt_factor_corrected` (LCFA) |
+| **Stochastic (quantum)** | Emission of discrete photons at random times with the strong-field QED rates (Neitz & Di Piazza 2013; Blackburn et al. 2014; Ridgers et al. 2014) | Same average as continuous | Each electron's loss is random ("straggling"), so the spectrum **broadens** | `classical: false`, LMA rates (Heinzl et al. 2020) |
+
+The models form a hierarchy. Continuous is the average of stochastic, and classical is the limit of both as χ → 0. Stochastic emission is therefore the most complete of the three at these field strengths, and the default in modern strong-field QED codes. The two quantum models predict nearly the same energy loss and differ in the spread around it, which is why the spectral width (P70) and not the energy loss separates them. Earlier Gemini experiments saw radiation reaction in the photon (Cole et al. 2018) and electron (Poder et al. 2018) spectra, and Los et al. (2024) found both quantum models favoured over classical.
+
+In this project the 8,192-collision training scan and the parameter inference use the **stochastic** model, and the first 4,096 collisions were rerun with the classical and continuous models (same seeds) to train one surrogate per model for the comparison. That the data prefer stochastic is a result of the comparison, not an assumption.
 
 ## Data
 
@@ -266,3 +282,16 @@ Code: [github.com/liudi23/ml-sfqed](https://github.com/liudi23/ml-sfqed), MIT li
 - W. Lu et al., PRL 96, 165002 (2006); PRSTAB 10, 061301 (2007) – blowout-regime fields and energy scaling.
 - J. Wenz, S. Karsch, *Physics of Laser-Wakefield Accelerators*, [arXiv:2007.04622](https://arxiv.org/abs/2007.04622).
 - T. G. Blackburn et al., Ptarmigan, Phys. Plasmas 30, 093903 (2023).
+- L. D. Landau and E. M. Lifshitz, *The Classical Theory of Fields*, 4th ed. (Pergamon, 1975), §76 – classical radiation reaction.
+- A. Di Piazza, C. Müller, K. Z. Hatsagortsyan and C. H. Keitel, *Extremely high-intensity laser interactions with fundamental quantum systems*, Rev. Mod. Phys. 84, 1177 (2012).
+- T. G. Blackburn, *Radiation reaction in electron–beam interactions with high-intensity lasers*, Rev. Mod. Plasma Phys. 4, 5 (2020).
+- A. Gonoskov, T. G. Blackburn, M. Marklund and S. S. Bulanov, *Charged particle motion and radiation in strong electromagnetic fields*, Rev. Mod. Phys. 94, 045001 (2022).
+- J. G. Kirk, A. R. Bell and I. Arka, *Pair production in counter-propagating laser beams*, Plasma Phys. Control. Fusion 51, 085008 (2009) – Gaunt-factor (continuous quantum) radiation reaction.
+- N. Neitz and A. Di Piazza, *Stochasticity effects in quantum radiation reaction*, Phys. Rev. Lett. 111, 054802 (2013).
+- T. G. Blackburn, C. P. Ridgers, J. G. Kirk and A. R. Bell, *Quantum radiation reaction in laser–electron-beam collisions*, Phys. Rev. Lett. 112, 015001 (2014).
+- C. P. Ridgers et al., *Modelling gamma-ray photon emission and pair production in high-intensity laser–matter interactions*, J. Comput. Phys. 260, 273 (2014).
+- C. P. Ridgers et al., *Signatures of quantum effects on radiation reaction in laser–electron-beam collisions*, J. Plasma Phys. 83, 715830502 (2017).
+- F. Niel, C. Riconda, F. Amiranoff, R. Duclous and M. Grech, *From quantum to classical modeling of radiation reaction: a focus on stochasticity effects*, Phys. Rev. E 97, 043209 (2018).
+- T. Heinzl, B. King and A. J. MacLeod, *Locally monochromatic approximation to QED in intense laser fields*, Phys. Rev. A 102, 063110 (2020).
+- J. M. Cole et al., *Experimental evidence of radiation reaction in the collision of a high-intensity laser pulse with a laser-wakefield accelerated electron beam*, Phys. Rev. X 8, 011020 (2018).
+- K. Poder et al., *Experimental signatures of the quantum nature of radiation reaction in the field of an ultraintense laser*, Phys. Rev. X 8, 031004 (2018).

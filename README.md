@@ -2,7 +2,7 @@
 
 **Calibrated machine learning and simulation-based inference for strong-field QED experiments**
 
-[![CI](https://github.com/liudi23/ml-sfqed/actions/workflows/ci.yml/badge.svg)](https://github.com/liudi23/ml-sfqed/actions/workflows/ci.yml)
+[![CI](https://github.com/liudi23/ml-sfqed/actions/workflows/ci.yml/badge.svg)](https://github.com/liudi23/ml-sfqed/actions/workflows/ci.yml) [![Streamlit app](https://img.shields.io/badge/demo-Streamlit%20app-FF4B4B?logo=streamlit&logoColor=white)](https://ml-sfqed.streamlit.app)
 
 In this project we build an end-to-end pipeline that turns raw data from a strong-field QED experiment into fast, calibrated Bayesian inference. It is applied to the 2021 radiation-reaction experiment at the Gemini laser, where a laser-wakefield electron beam collides with an intense laser pulse and the change in the electron spectrum shows how electrons radiate when quantum effects matter. The pipeline chains a machine-learning model of the incoming electron beam, Ptarmigan QED Monte Carlo simulations, a neural surrogate of those simulations, and Bayesian inference on the public collision shots.
 
@@ -22,7 +22,7 @@ In this project we build an end-to-end pipeline that turns raw data from a stron
 - **Knowing what the data can tell you.** Tests on simulated shots show which quantities a measurement pins down (here the effective field and, through P70, the radiation-reaction model, but not the peak field), which helps decide what a future experiment should measure.
 - **Predicting the beam.** Laser-wakefield operators get a predicted spectrum with honest error bars for shots where the beam cannot be measured directly.
 
-**Why it is better than the existing analysis** (Los et al. 2024, direct simulation in the likelihood): one shot takes **42 CPU-seconds instead of ~19,200 CPU-hours**, which makes recovery tests, extra free parameters and sensitivity studies affordable; the incoming-beam uncertainty is **measured on held-out shots** rather than taken from the network ensemble (it is ~3× larger); the beam prediction itself is more accurate; and every stage is checked on data it never saw.
+**How it builds on earlier work.** Los et al. (2024) carried out the first Bayesian analysis of these collision shots, with the full simulation inside the likelihood. This project follows their observables, radiation-reaction models and inference set-up, and extends them: a learned surrogate brings one shot down to **42 CPU-seconds** (from ~19,200 CPU-hours), which makes recovery tests, extra free parameters and sensitivity studies affordable; the incoming-beam uncertainty is **measured on held-out shots** (about 3× the network ensemble's spread); the beam model is more accurate and physically interpretable; and every stage is checked on data it never saw. The two analyses agree that quantum radiation reaction describes the data better than classical; the spectral broadening (P70) used here also separates stochastic from continuous emission.
 
 **Limitations.** The likelihood uses two summary observables of the electron spectrum and not yet the gamma-ray data; a full-spectrum likelihood is the next step. It is trained for the Gemini 2021 set-up: a new experiment needs its own beam data and simulation scan, though the code carries over. See [Limitations and next steps](#limitations-and-next-steps).
 
@@ -49,7 +49,7 @@ pip install -e ".[demo]"
 jupyter lab notebooks/demo.ipynb
 ```
 
-**Interactive app:** [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://ml-sfqed.streamlit.app) — set an incoming beam and the collision, and the surrogates predict all three radiation-reaction models live; run inference on a toy shot; browse the results on the 2021 data. Run it locally with `pip install -e ".[app]"` and `streamlit run app/streamlit_app.py`.
+No installation needed for the **[interactive Streamlit app](https://ml-sfqed.streamlit.app)**: set an incoming beam and the collision, and the surrogates predict all three radiation-reaction models live; run inference on a toy shot; browse the results on the 2021 data. Run it locally with `pip install -e ".[app]"` and `streamlit run app/streamlit_app.py`.
 
 The [demo notebook](notebooks/demo.ipynb) (executed, outputs included) runs on the trained models shipped in [`models/`](models/README.md), with no simulation needed:
 
