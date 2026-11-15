@@ -39,7 +39,7 @@ class ShotPosterior:
     """log-posterior for one shot. free: names of inferred parameters (subset of PRIOR)."""
 
     def __init__(self, model, beams_dWdE, obs_mean, obs_p70, meas_sd_mean, free=("a0", "dz_um", "length_um"),
-                 fixed=None, beam_rmse=None, dz_prior="uniform"):
+                 fixed=None, beam_rmse=None, dz_prior="uniform", use=(0, 1)):
         """beam_rmse: optional (mean energy, P70) realistic prediction errors of the incoming beam. If given,
         the spread of the supplied beam predictions is widened per observable to that error by adding
         the missing variance (max(0, rmse^2 - spread^2)); None uses the predictions as they are."""
@@ -68,6 +68,7 @@ class ShotPosterior:
         self.lo = np.array([PRIOR[k][0] for k in self.free])
         self.hi = np.array([PRIOR[k][1] for k in self.free])
         self.dz_prior = dz_prior
+        self.use = tuple(use)
         self.i_dz = self.free.index("dz_um") if "dz_um" in self.free else None
 
     def inputs(self, theta):
@@ -88,18 +89,44 @@ class ShotPosterior:
         pred = np.column_stack([mean_out, mu[:, 1]]).reshape(len(theta), self.K, 2)
         return pred, var.reshape(len(theta), self.K, 2)
 
+    def loglike(self, theta, use=(0, 1)):
+        """log-likelihood (beam-marginalised) for theta inside the prior box. use: observables to include
+        (0 = mean energy, 1 = P70)."""
+        pred, var = self.predict(np.atleast_2d(theta))
+        v = var + self.meas_var
+        terms = -0.5 * (((self.obs - pred) ** 2) / v + np.log(2 * np.pi * v))            # (W, K, 2)
+        ll = terms[..., list(use)].sum(-1)
+        return logsumexp(ll, axis=1) - np.log(self.K)
+
     def __call__(self, theta):
         theta = np.atleast_2d(theta)
         lp = np.full(len(theta), -np.inf)
         ok = np.all((theta >= self.lo) & (theta <= self.hi), axis=1)
         if ok.any():
-            pred, var = self.predict(theta[ok])
-            v = var + self.meas_var
-            ll = -0.5 * (((self.obs - pred) ** 2) / v + np.log(2 * np.pi * v)).sum(-1)    # (W, K)
-            lp[ok] = logsumexp(ll, axis=1) - np.log(self.K)
+            lp[ok] = self.loglike(theta[ok], self.use)
             if self.dz_prior == "focus" and self.i_dz is not None:
                 lp[ok] += -0.5 * np.log(np.abs(theta[ok, self.i_dz]) + 1e-3)
         return lp
+
+    def sample_prior(self, n, rng):
+        """Draws from the (normalised) prior: uniform box, dz ~ 250 sign(v) v^2 under the focus prior."""
+        th = self.lo + rng.random((n, len(self.free))) * (self.hi - self.lo)
+        if self.dz_prior == "focus" and self.i_dz is not None:
+            v = 2 * rng.random(n) - 1
+            th[:, self.i_dz] = np.sign(v) * v ** 2 * PRIOR["dz_um"][1]
+        return th
+
+    def log_evidence(self, n=40000, seed=0, batch=4000, use=None):
+        """log Z = log E_prior[L] by Monte Carlo over the prior; returns (logZ, standard error of logZ).
+        Adequate here: 3-4 parameters and a likelihood that is broad relative to the prior."""
+        rng = np.random.default_rng(seed)
+        use = self.use if use is None else use
+        ll = np.concatenate([self.loglike(self.sample_prior(batch, rng), use) for _ in range(n // batch)])
+        m = ll.max()
+        w = np.exp(ll - m)
+        logZ = m + np.log(w.mean())
+        se = float(w.std(ddof=1) / np.sqrt(len(w)) / w.mean())                 # delta method on log
+        return float(logZ), se, float(w.sum() ** 2 / (w ** 2).sum())        # + effective sample size
 
     def a0_eff(self, theta):
         """Geometric effective a0 (the surrogate's a0_eff_est) for posterior samples."""

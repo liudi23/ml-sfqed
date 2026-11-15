@@ -4,7 +4,8 @@ MLP ensemble trained on all scan runs except a calibration set (15% of the measu
 per-observable split-conformal factors from the calibration set; saved with everything inference needs.
   python scripts/stage3_train_final.py            (~2-3 min on a laptop)
   python scripts/stage3_train_final.py --quick    (small model, smoke test)
-Writes data/processed/models/surrogate.pkl (or surrogate_quick.pkl).
+  python scripts/stage3_train_final.py --model classical --max-runs 4096   (one surrogate per RR model)
+Writes data/processed/models/surrogate.pkl (stochastic, all runs) or surrogate_<model>_<N>[_quick].pkl.
 """
 
 from __future__ import annotations
@@ -32,8 +33,11 @@ MODELS = ROOT / "data" / "processed" / "models"
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--quick", action="store_true")
+    ap.add_argument("--model", choices=["stochastic", "classical", "continuous"], default="stochastic")
+    ap.add_argument("--max-runs", type=int)
     a = ap.parse_args()
-    X, Y, meta, _, _ = build()
+    stage2 = ROOT / "data" / "processed" / ("stage2" if a.model == "stochastic" else f"stage2_{a.model}")
+    X, Y, meta, _, _ = build(stage2, a.max_runs)
     assert list(X.columns) == INPUTS
     rng = np.random.default_rng(1)
     shots = meta.beam_shot_index.unique()
@@ -50,9 +54,12 @@ def main():
              "mc_noise": NOISE, "pool_E_MeV": E_pool, "pool_pca": pca, "pool_Q_median_pC": float(np.median(pool["Q_pC"])),
              "input_min": X.min().to_dict(), "input_max": X.max().to_dict(),
              "n_train": int((~cal).sum()), "n_calibration": int(cal.sum()), "quick": a.quick,
-             "calibration_run_ids": meta.run_id[cal].tolist()}
+             "calibration_run_ids": meta.run_id[cal].tolist(), "rr_model": a.model, "max_runs": a.max_runs}
     MODELS.mkdir(parents=True, exist_ok=True)
-    out = MODELS / f"surrogate{'_quick' if a.quick else ''}.pkl"
+    if a.model == "stochastic" and a.max_runs is None:
+        out = MODELS / f"surrogate{'_quick' if a.quick else ''}.pkl"
+    else:
+        out = MODELS / f"surrogate_{a.model}_{a.max_runs or 'all'}{'_quick' if a.quick else ''}.pkl"
     with open(out, "wb") as f:
         pickle.dump(model, f)
     print(f"trained on {model['n_train']} runs, calibrated on {model['n_calibration']} ({time.time() - t0:.0f} s) -> {out}")

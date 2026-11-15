@@ -127,9 +127,13 @@ def beam_descriptors(stage2: Path = STAGE2, n_pc: int = 6) -> pd.DataFrame:
     return out
 
 
-def build(stage2: Path = STAGE2):
-    """Returns X (DataFrame of inputs), Y (DataFrame of targets), groups (beam shot index), spectra."""
+def build(stage2: Path = STAGE2, max_run_id: int | None = None):
+    """Returns X (DataFrame of inputs), Y (DataFrame of targets), groups (beam shot index), spectra.
+    max_run_id: keep only runs with run_id < max_run_id (e.g. the first 4,096 Sobol points)."""
     df, Ne, Ng = load_runs(stage2)
+    if max_run_id is not None:
+        keep = (df.run_id < max_run_id).values
+        df, Ne, Ng = df[keep].reset_index(drop=True), Ne[keep], Ng[keep]
     bd = beam_descriptors(stage2)
     b = bd.iloc[df.beam_index.values].reset_index(drop=True)
     df = pd.concat([df, b.drop(columns=[c for c in b.columns if c in df.columns])], axis=1)
