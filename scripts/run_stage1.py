@@ -95,9 +95,19 @@ def evaluate(name, d, tr, te, args):
     s["fit_seconds"] = round(time.time() - t0, 1)
     res["two_part"] = s
     preds["two_part"] = (samp.transpose(1, 0, 2), Wp, (hi - lo) / 2 / 1.645)
-    # peak model: explicit peak position/height/width + continuum, per-bin calibrated band
+    # peak model: explicit peak position/height/width + continuum, per-bin calibrated band;
+    # "peak_model_gp" averages the peak-position ensemble with a Gaussian process (chosen on run11)
+    for key, blend in (("peak_model", ()), ("peak_model_gp", ("position",))):
+        res[key], preds[key], pk = peak_eval(E, Rtr, Ytr, Rte, Yte, Wte, args, score, blend)
+        preds[key.replace("model", "point")] = pk.predict_point(Rte)
+    shap = lgbm_beam_energy_shap(np.vstack([Xtr]), beam_energy(Ytr, E), feat.names(), seed=args.seed)
+    res["beam_energy_shap_top"] = shap[:8]
+    return res, preds, Yte, Wte
+
+
+def peak_eval(E, Rtr, Ytr, Rte, Yte, Wte, args, score, gp_blend):
     t0 = time.time()
-    pk = PeakBeamModel(E, n_members=args.members, seed=args.seed).fit(Rtr, Ytr).calibrate()
+    pk = PeakBeamModel(E, n_members=args.members, seed=args.seed, gp_blend=gp_blend).fit(Rtr, Ytr).calibrate()
     samp = pk.sample_calibrated(Rte, n_samples=200, seed=args.seed)
     s = score(samp.mean(1))
     _, lo, hi = pk.energy.interval(Rte, 0.9)
@@ -107,12 +117,10 @@ def evaluate(name, d, tr, te, args):
     s["CRPS_beam_energy_sampler_J"] = float(crps_ensemble(beam_energy(samp, E).T, Wte).mean())
     b5, b95 = np.percentile(samp, [5, 95], axis=1)
     s["spectral_band90_coverage"] = float(np.mean((Yte >= b5) & (Yte <= b95)))
+    win = E > 650
+    s["peak_height_ratio_point"] = float(np.median(pk.predict_point(Rte)[:, win].max(1) / Yte[:, win].max(1)))
     s["fit_seconds"] = round(time.time() - t0, 1)
-    res["peak_model"] = s
-    preds["peak_model"] = (samp.transpose(1, 0, 2), Wp, (hi - lo) / 2 / 1.645)
-    shap = lgbm_beam_energy_shap(np.vstack([Xtr]), beam_energy(Ytr, E), feat.names(), seed=args.seed)
-    res["beam_energy_shap_top"] = shap[:8]
-    return res, preds, Yte, Wte
+    return s, (samp.transpose(1, 0, 2), Wp, (hi - lo) / 2 / 1.645), pk
 
 
 def check_fits(fig, name):
@@ -148,7 +156,8 @@ def plots(name, d, te, preds, Yte, Wte):
                          "axes.spines.top": False, "axes.spines.right": False, "figure.facecolor": surf,
                          "axes.facecolor": surf, "font.size": 9, "lines.linewidth": 2})
     E = d["E_MeV"]
-    P, Wm, sd = preds["peak_model"]
+    P, Wm, sd = preds["peak_model_gp"]
+    point = preds.get("peak_point_gp")
     # 1) predicted vs measured beam energy with calibrated 90% intervals
     fig, ax = plt.subplots(figsize=(4.2, 4))
     lo, hi = min(Wte.min(), Wm.min()) * 0.9, max(Wte.max(), Wm.max()) * 1.1
@@ -165,8 +174,13 @@ def plots(name, d, te, preds, Yte, Wte):
     fig, axs = plt.subplots(2, 3, figsize=(8, 4.2), sharex=True, sharey=True)
     for ax, i in zip(axs.flat, pick):
         lo_b, hi_b = np.percentile(P[:, i], [5, 95], axis=0)
-        ax.fill_between(E, lo_b, hi_b, color=blue, alpha=0.2, lw=0, label="sampler 5–95% (calibrated)")
-        ax.plot(E, np.median(P[:, i], 0), color=blue, label="sampler median")
+        ax.fill_between(E, lo_b, hi_b, color=blue, alpha=0.18, lw=0, label="5–95% band (calibrated)")
+        for k in range(3):                                   # individual draws keep their sharp peaks
+            ax.plot(E, P[k, i], color=blue, lw=0.6, alpha=0.45, label="three samples" if k == 0 else None)
+        if point is not None:
+            ax.plot(E, point[i], color=blue, lw=1.8, label="prediction (predicted peak)")
+        else:
+            ax.plot(E, np.median(P[:, i], 0), color=blue, label="sampler median")
         ax.plot(E, Yte[i], color=ink, lw=1.2, label="measured")
         ax.set_xlim(300, 1200)
         ax.set_xticks([400, 600, 800, 1000, 1200])
@@ -208,7 +222,7 @@ def main():
     rows = ["| split | model | MSE | beam-energy rel. RMS | 90% coverage (calibrated) |", "|---|---|---|---|---|"]
     for name in splits:
         r = results[name]
-        for m in ("naive_mean", "ridge_pca", "lgbm_ensemble", "mlp_ensemble", "two_part", "peak_model"):
+        for m in ("naive_mean", "ridge_pca", "lgbm_ensemble", "mlp_ensemble", "two_part", "peak_model", "peak_model_gp"):
             cov = f"{r[m]['calibrated_90pc_coverage']:.2f}" if "calibrated_90pc_coverage" in r[m] else "–"
             rows.append(f"| {name} | {m} | {r[m]['MSE']:.4f} | {r[m]['beam_energy_rel_rms']:.3f} | {cov} |")
     rows.append(f"| paper | Streeter et al. VNN ensemble | {PAPER['ensemble_MSE']} | {PAPER['beam_energy_rel_rms']} | – |")

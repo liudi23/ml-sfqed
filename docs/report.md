@@ -11,7 +11,7 @@ A calibrated beam model plus a neural surrogate of Ptarmigan turns a 19,200 CPU-
 
 | Stage | Result |
 | --- | --- |
-| 1 Beam model | Spectral MSE 0.048 vs 0.057 for the published network; calibrated 90% intervals cover 0.89–0.90 |
+| 1 Beam model | Spectral MSE 0.046 vs 0.057 for the published network; calibrated 90% intervals cover 0.89–0.90 |
 | 2 Simulation | Ptarmigan v1.6.1 validated against analytic limits to ≤1%; 8,192-collision Sobol scan; 4,096 collisions repeated for classical and continuous radiation reaction |
 | 3 Surrogate | MLP ensemble, R² 0.98 for energy loss at ~2× Monte Carlo noise; ~18,000× faster per call, ~4×10⁶× batched |
 | 4 Inference | 42 CPU-s per shot; recovery test 90% coverage of the true a0 |
@@ -35,19 +35,25 @@ The beam drifts during the day: mean beam energy falls from 0.90 J to 0.52 J bet
 
 ## Stage 1: calibrated beam model
 
-Each spectrum is total beam energy W times a normalised shape. log W comes from bagged LightGBM; the shape is a PCA continuum plus a Gaussian peak whose centre, width and height are regressed separately. Uncertainty comes from out-of-bag paired residuals, then per-bin split-conformal calibration.
+Each spectrum is total beam energy W times a normalised shape. log W comes from bagged LightGBM; the shape is a PCA continuum plus a Gaussian peak whose centre, width and height are regressed separately. The peak centre is predicted by the LightGBM ensemble averaged with a Gaussian process (RBF kernel, one length scale per feature): trees give step-like and the GP smooth predictions, so their errors differ. Blending was chosen on run 11 (trained on runs 05–10), where it cut the position error from 52 to 47 MeV; blending height or width did not help. Uncertainty comes from out-of-bag paired residuals, then per-bin split-conformal calibration.
 
 | Split | Model | Spectral MSE | Beam-energy rel. RMS | 90% coverage (calibrated) |
 | --- | --- | --- | --- | --- |
 | paper | Streeter et al. network ensemble | 0.057 | 0.124 | – |
 | paper | LightGBM ensemble | 0.056 | 0.149 | 0.88 |
 | paper | Two-part | 0.050 | 0.123 | 0.89 |
-| paper | **Peak model** | **0.048** | 0.124 | 0.89 |
+| paper | Peak model | 0.048 | 0.124 | 0.89 |
+| paper | **Peak model + GP position** | **0.046** | 0.124 | 0.89 |
 | time | LightGBM ensemble | 0.040 | 0.189 | 0.91 |
 | time | Two-part | 0.033 | 0.142 | 0.90 |
-| time | **Peak model** | **0.032** | 0.146 | 0.90 |
+| time | Peak model | 0.032 | 0.146 | 0.90 |
+| time | **Peak model + GP position** | **0.031** | 0.146 | 0.90 |
 
 ![Predicted vs measured spectra on the held-out run](../results/stage1/spectra_time.png)
+
+The figure shows the spectrum at the predicted peak parameters, which keeps 96% of the measured peak height on the held-out run; the per-bin median of samples keeps only 81%, because averaging over where the peak may sit flattens it (it scores a slightly lower MSE for the same reason). The remaining misses are mostly peak position (35 MeV RMS error).
+
+Where the error lives: with the measured peak parameters the MSE would halve (0.034 → 0.017; before the GP blend), so the peak is what limits the model. Peak position is predictable (R² 0.69), height partly (0.43), width not at all (R² < 0). Correcting drift online, using earlier shots of the same run plus shrinking the width prediction (`scripts/peak_drift_study.py`, tuned on run 11, tested on run 13), cuts the width error by 13% and removes the parameter biases, but improves MSE by only 1%: the remaining error is shot-to-shot scatter that the diagnostics do not capture.
 
 Raw bagged ensembles are overconfident (44–68% coverage of a nominal 90% interval) until calibrated. Shot-history and physics-ratio features gave no gain: the remaining error is independent shot-to-shot noise.
 

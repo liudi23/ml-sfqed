@@ -12,10 +12,11 @@ Status key: ✅ done · 🔄 in progress · ⬜ to do.
 | | Spectral MSE | Beam-energy error | 90% band coverage |
 |---|---|---|---|
 | Streeter et al. (authors' split) | 0.057 | 12.4% | – |
-| This work, authors' split | 0.048 | 12.4% | 92% of bins |
-| This work, time split | 0.032 | 14% | 84% of bins, 90% on beam |
+| This work, authors' split | 0.046 | 12.4% | 92% of bins |
+| This work, time split | 0.031 | 14% | 84% of bins, 90% on beam |
 
 - Findings: raw ensemble spreads are overconfident (44–68% coverage of a nominal 90% interval) until calibrated; history and physics-based features add nothing because the remaining error is independent shot-to-shot noise; optional online adaptation during a run brings run13 coverage to 89%.
+- Peak position: LightGBM ensemble averaged with a Gaussian process (`GPBlendEnsemble`), chosen on run 11; −3 to −4% spectral MSE. Plotted prediction = spectrum at the predicted peak (keeps ~97% of peak height). Online drift correction studied (`peak_drift_study.py`): −13% width error, −1% MSE, not adopted.
 - Scripts: `run_stage1.py`, `validate_sampler.py`, `compare_shape_models.py`, `feature_study.py`, `online_adaptation.py`.
 
 ## Stage 2 – Monte Carlo with Ptarmigan ✅

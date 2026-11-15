@@ -17,7 +17,7 @@ An end-to-end pipeline from real laser–plasma data to Bayesian model compariso
 | **~1.6 million× faster inference** | A full Bayesian fit of one collision shot takes **42 CPU-seconds**, against ~19,200 CPU-hours with direct simulation (Los et al. 2024). |
 | **Published beam uncertainty is ~3× too narrow** | The incoming-beam error measured on held-out shots (P70 0.29, mean energy 18.8 MeV) is ~3× the published per-shot spread (0.11, 6.4 MeV). Using it widens the field-strength estimates by about half and halves the Bayes factors. |
 | **Spectral broadening favours stochastic quantum radiation reaction** | On all 10 shots the outgoing spectrum is broader than the incoming one. Only stochastic emission reproduces this; classical and continuous models miss on 8 of 10. Summed log Bayes factor over classical: **+18** with realistic beam uncertainty. |
-| **Better beam prediction, with honest uncertainty** | Spectral MSE **0.048 vs 0.057** for the published network ensemble; calibrated 90% intervals cover 89–90% of held-out shots (raw ensembles: 44–68%). |
+| **Better beam prediction, with honest uncertainty** | Spectral MSE **0.046 vs 0.057** for the published network ensemble (20% lower); calibrated 90% intervals cover 89–90% of held-out shots (raw ensembles: 44–68%). |
 | **Accurate surrogate** | MLP ensemble reproduces Ptarmigan to R² 0.98 (energy loss) at ~2× its Monte Carlo noise; ~18,000× faster per call, ~4×10⁶× batched. |
 
 Full write-up: **[docs/report.md](docs/report.md)**.
@@ -57,8 +57,10 @@ The stochastic preference halves once the measured beam error replaces the publi
 | Split | Model | Spectral MSE | Beam-energy error | 90% coverage |
 | --- | --- | --- | --- | --- |
 | authors' random split | Streeter et al. network ensemble | 0.057 | 12.4% | – |
-| authors' random split | **Peak model (this work)** | **0.048** | 12.4% | 0.89 |
-| time split (held-out last run) | **Peak model (this work)** | **0.032** | 14.6% | 0.90 |
+| authors' random split | **Peak model + GP peak position (this work)** | **0.046** | 12.4% | 0.89 |
+| time split (held-out last run) | **Peak model + GP peak position (this work)** | **0.031** | 14.6% | 0.90 |
+
+The peak position is predicted by a LightGBM ensemble averaged with a Gaussian process: the two make different errors, and the blend cuts the position error by ~8% (chosen on an earlier run, then tested). The thick line is the spectrum at the predicted peak, which keeps ~97% of the measured peak height; the remaining misses are mostly peak position, which the diagnostics only partly determine.
 
 ![Held-out spectra](results/stage1/spectra_time.png)
 
