@@ -114,6 +114,8 @@ Each spectrum is total beam energy W times a normalised shape. The shape is a da
 | time | Peak model + GP position | 0.031 | 0.146 | 0.90 |
 | time | **Square-root-edge peak + GP position** | **0.030** | 0.147 | 0.90 |
 
+**Why two splits.** The *random* split (the authors' 570/75) is kept only to compare with Streeter et al. The *time* split (train on runs 05–12, test on run 13, the last run of the day) is the honest test: it asks whether a model trained on earlier shots can predict later ones, which is how it is used for collision shots. It matters because the beam drifts (mean beam energy 0.90 J in run 05, 0.52 J in run 13) and neighbouring shots are alike, so a random split tests the model inside conditions it has already seen. On the time split the beam-energy error is larger (14.7% vs 12.5%; plain LightGBM 18.9% vs 14.9%), but the calibrated 90% intervals still cover 90%. The incoming-beam error used in the inference is measured on run 13, and model choices were made on run 11 (trained on runs 05–10) before run 13 was touched. Spectral MSE is lower on run 13 only because its spectra vary less; MSE is comparable within a split, not across splits.
+
 ![Predicted vs measured spectra on the held-out run](../results/stage1/spectra_time.png)
 
 The figure shows the spectrum at the predicted peak parameters, which keeps 97% of the measured peak height on the held-out run; the per-bin median of samples keeps only 81%, because averaging over where the peak may sit flattens it (it scores a slightly lower MSE for the same reason). The remaining misses are mostly peak position (edge energy E_max: 33 MeV RMS error, R² 0.73).
