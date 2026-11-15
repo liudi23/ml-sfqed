@@ -19,3 +19,6 @@ results/stage3/*_quick.json
 results/stage3/*_quick.png
 results/inference/chains/
 results/inference/*_quick.*
+
+# run logs
+*.log
