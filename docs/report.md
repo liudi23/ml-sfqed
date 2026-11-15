@@ -160,6 +160,10 @@ The surrogate makes a full Bayesian analysis of one collision shot cost 42 CPU-s
 
 **Recovery test.** On 48 held-out simulated collisions, the 90% interval contains the true a0 in 90% of cases and the true effective a0 in 83%.
 
+![Parameter recovery on simulated shots](figures/recovery_a0.png)
+
+The peak a0 posteriors are wide and close to the prior (medians mostly 10–16 whatever the truth); the effective a0 follows the truth, slightly under-covered (83% for a nominal 90%, median bias −0.4).
+
 **Beam uncertainty.** On held-out Gemini shots the incoming-beam prediction error of the adopted Stage 1 model is 0.26 in P70 and 18.1 MeV in mean energy, and its calibrated spread matches it (coverage 0.90–0.92). The published network's per-shot spread is 2.4–2.8× smaller (median 0.11 and 6.4 MeV).
 
 ![Effective a0 per shot](figures/a0_eff.png)
@@ -184,6 +188,10 @@ On the three shots with 34–43 MeV loss the two agree to about 1. Elsewhere the
 Evidence by Monte Carlo integration over the prior (MC error ≤ 0.035 in log Z), one surrogate per model trained on the same collisions.
 
 **Recovery test** (90 held-out simulated shots): with mean energy + P70, stochastic data are identified 93% of the time, classical 23% (60% go to stochastic), continuous 47%. With mean energy alone every model wins about a third of the time, because a free a0 absorbs the difference in energy loss.
+
+![Model recovery on simulated shots](figures/model_recovery.png)
+
+The lean towards stochastic on classical shots is weak: their stochastic-vs-classical log Bayes factor has median +0.3 and never exceeds +1.2, so ten classical shots would sum to about −3 (ten stochastic shots: about +7). The +20 found on the real data is therefore not produced by this bias.
 
 ![Summed log Bayes factors](figures/bayes_factors.png)
 

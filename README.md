@@ -71,6 +71,16 @@ P70's lower R² reflects its small spread relative to Monte Carlo noise (ceiling
 
 Each shot is fitted to its outgoing mean energy and P70 with the incoming beam marginalised over 50 predicted spectra, in **42 CPU-seconds** (emcee, surrogate in the likelihood). On 48 simulated shots with known answers the 90% intervals contain the true a0 90% of the time; on 90 simulated shots the model comparison identifies stochastic data 93% of the time.
 
+#### Checks on simulated shots with known answers
+
+![Parameter recovery on simulated shots](docs/figures/recovery_a0.png)
+
+Only the effective a0 is recovered; the peak a0 at focus stays close to its prior, because a stronger laser slightly off the beam gives the same energy loss.
+
+![Model recovery on simulated shots](docs/figures/model_recovery.png)
+
+With P70, stochastic shots are identified 93% of the time; with mean energy alone the comparison is no better than chance. Classical shots often come out marginally stochastic, but only by small margins (median log Bayes factor +0.3, never above +1.2): ten classical shots would sum to about −3, against **+20** on the real data.
+
 #### Realistic beam uncertainty widens every field-strength estimate
 
 ![Effective a0 per shot](docs/figures/a0_eff.png)

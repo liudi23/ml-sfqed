@@ -8,6 +8,10 @@ Writes docs/figures/:
   p70_shots.png        observed P70 on the 10 collision shots vs each model's prediction after fitting energy loss
   bayes_factors.png    summed log Bayes factors vs classical under four uncertainty set-ups, and Los et al.
   a0_eff.png           effective a0 per shot with published vs measured incoming-beam uncertainty
+  recovery_a0.png      parameter recovery on 48 simulated shots: true vs inferred a0 and effective a0
+  model_recovery.png   model comparison on 90 simulated shots: which model wins, per true model
+
+  python scripts/make_figures.py recovery_a0 model_recovery   # only the named figures
 """
 
 from __future__ import annotations
@@ -216,9 +220,62 @@ def a0_eff():
     save(fig, "a0_eff.png")
 
 
+# ------------------------------------------------------------------ recovery tests (simulated shots)
+def recovery_a0():
+    rec = json.loads((R / "inference" / "recovery_focus.json").read_text())
+    runs, summ = rec["runs"], rec["summary"]
+    fig, axes = plt.subplots(1, 2, figsize=(9.2, 4.4))
+    for ax, key, lab, cov in ((axes[0], "a0", "Peak a0", summ["a0_coverage90"]),
+                              (axes[1], "a0_eff", "Effective a0", summ["a0_eff_coverage90"])):
+        hi = 20.5
+        ax.plot([0, hi], [0, hi], color="#999", lw=1, ls="--", zorder=0)
+        for r in runs:
+            t, q = r[f"true_{key}"], r[key]
+            c = COL["stochastic"] if r[f"{key}_in90"] else COL["classical"]
+            ax.plot([t, t], [q["p5"], q["p95"]], color=c, lw=1.3, alpha=0.55)
+            ax.plot(t, q["p50"], "o", color=c, ms=4, mec="white", mew=0.6)
+        ax.set(xlim=(0, hi), ylim=(0, hi), xlabel=f"True {lab.lower()}", ylabel=f"Inferred {lab.lower()} (median, 90%)",
+               aspect="equal")
+        ax.set_title(f"{lab}: truth inside 90% interval in {cov:.0%}", fontsize=9, loc="left")
+    axes[1].legend(handles=[plt.Line2D([], [], color=COL["stochastic"], marker="o", lw=1.3),
+                            plt.Line2D([], [], color=COL["classical"], marker="o", lw=1.3)],
+                   labels=["truth inside 90% interval", "truth outside"], loc="upper left", fontsize=8)
+    title(fig, f"On {summ['n']} simulated shots the effective a0 is recovered; the peak a0 is not pinned down")
+    save(fig, "recovery_a0.png")
+
+
+def model_recovery():
+    with open(R / "model_comparison" / "recovery.csv") as f:
+        rows = list(csv.DictReader(f))
+    fig, axes = plt.subplots(1, 2, figsize=(8.6, 3.9))
+    for ax, obs, lab in ((axes[0], "mean+P70", "Mean energy + P70"), (axes[1], "mean", "Mean energy only")):
+        M = np.zeros((3, 3))
+        for r in rows:
+            win = max(MODELS, key=lambda m: float(r[f"logZ_{m}_{obs}"]))
+            M[MODELS.index(r["true_model"]), MODELS.index(win)] += 1
+        F = M / M.sum(1, keepdims=True)
+        ax.imshow(F, cmap="Blues", vmin=0, vmax=1)
+        for i in range(3):
+            for j in range(3):
+                ax.text(j, i, f"{F[i, j]:.0%}", ha="center", va="center", fontsize=9.5,
+                        color="white" if F[i, j] > 0.55 else "#222")
+        short = ["Stochastic", "Continuous", "Classical"]
+        ax.set_xticks(range(3), short, fontsize=8.5)
+        ax.set_yticks(range(3), short if ax is axes[0] else [""] * 3, fontsize=8.5)
+        ax.set_xlabel("Model with the highest evidence")
+        if ax is axes[0]:
+            ax.set_ylabel("Model that generated the shot")
+        ax.set_title(f"{lab} ({int(M.sum())} shots)", fontsize=9.5, loc="left")
+        ax.grid(False)
+        for sp in ax.spines.values():
+            sp.set_visible(False)
+    title(fig, "P70 carries the model information, but classical shots often look stochastic")
+    save(fig, "model_recovery.png")
+
+
 if __name__ == "__main__":
     OUT.mkdir(parents=True, exist_ok=True)
-    p70_shots()
-    bayes_factors()
-    a0_eff()
-    sweep_gif()
+    figs = {"p70_shots": p70_shots, "bayes_factors": bayes_factors, "a0_eff": a0_eff,
+            "recovery_a0": recovery_a0, "model_recovery": model_recovery, "sweep_gif": sweep_gif}
+    for name in sys.argv[1:] or figs:
+        figs[name]()
