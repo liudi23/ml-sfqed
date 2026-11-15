@@ -52,20 +52,22 @@ def save(fig, name):
 
 
 # ------------------------------------------------------------------ animation
-def sweep_gif(fps=12, hold=6, steps=8):
-    from matplotlib.animation import FuncAnimation, PillowWriter
+def sweep_gif(hold_ms=2200, step_ms=110, steps=8, end_ms=4000):
+    """Each a0 is held for hold_ms, then morphs to the next in `steps` frames of step_ms each."""
+    import io
+
+    from PIL import Image
     d = json.loads((R / "diagnostics" / "a0_sweep_spectra.json").read_text())
     E = np.array(d["E"])
     a0s = [f["a0"] for f in d["frames"]]
     Y = {m: np.array([f[m]["y"] for f in d["frames"]]) for m in MODELS}
     P = {m: np.array([f[m]["P70"] for f in d["frames"]]) for m in MODELS}
     # timeline: hold on each a0, then interpolate to the next
-    t = []
+    t, ms = [], []
     for i in range(len(a0s)):
-        t += [float(i)] * hold
+        t.append(float(i)); ms.append(end_ms if i == len(a0s) - 1 else hold_ms)
         if i < len(a0s) - 1:
-            t += list(i + np.arange(1, steps) / steps)
-    t += [float(len(a0s) - 1)] * (2 * hold)
+            t += list(i + np.arange(1, steps) / steps); ms += [step_ms] * (steps - 1)
 
     def at(arr, s):
         i = int(np.floor(s)); f = s - i
@@ -105,7 +107,16 @@ def sweep_gif(fps=12, hold=6, steps=8):
 
     draw(0.0)
     check_fits(fig, "rr_sweep.gif")
-    FuncAnimation(fig, draw, frames=t, blit=False).save(OUT / "rr_sweep.gif", writer=PillowWriter(fps=fps), dpi=90)
+    frames = []
+    for s_ in t:
+        draw(s_)
+        buf = io.BytesIO()
+        fig.savefig(buf, format="png", dpi=90)
+        rgb = Image.open(buf).convert("RGB")
+        pal = frames[0] if frames else None                    # one shared palette: no colour flicker
+        frames.append(rgb.quantize(palette=pal, dither=Image.Dither.NONE) if pal else
+                      rgb.quantize(colors=128, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE))
+    frames[0].save(OUT / "rr_sweep.gif", save_all=True, append_images=frames[1:], duration=ms, loop=0, optimize=True)
     draw(float(a0s.index(8)) if 8 in a0s else 0.0)
     fig.savefig(OUT / "rr_sweep_still.png", dpi=150)
     plt.close(fig)
@@ -118,25 +129,36 @@ def p70_shots():
     inc = {a["shot"]: a["incoming_P70_median"] for a in d["A"]["A3"]}
     rows = d["per_shot_model"]
     shots = sorted({r["shot"] for r in rows})
-    fig, ax = plt.subplots(figsize=(8.0, 6.0))
-    off = {"stochastic": -0.22, "continuous": 0.0, "classical": 0.22}
-    for r in rows:
-        y = r["shot"] + off[r["model"]]
-        p5, p50, p95 = r["mean_only"]["pred_P70_p5_p50_p95"]
-        ax.plot([p5, p95], [y, y], color=COL[r["model"]], lw=2.2, alpha=0.8, solid_capstyle="round")
-        ax.plot(p50, y, "o", color=COL[r["model"]], ms=4)
-    for s in shots:
-        obs = next(r["obs_P70"] for r in rows if r["shot"] == s)
-        ax.plot(inc[s], s, "o", mfc="none", mec="#777", ms=9, mew=1.5)
-        ax.plot(obs, s, "D", color="black", ms=6.5)
-    ax.set(yticks=shots, yticklabels=[f"shot {s}" for s in shots], xlabel="P70 (1/GeV)", ylim=(max(shots) + 0.6, -0.6))
-    ax.grid(axis="y", visible=False)
-    h = [plt.Line2D([], [], marker="D", color="black", ls="", label="Observed"),
-         plt.Line2D([], [], marker="o", mfc="none", mec="#777", ls="", ms=8, label="Predicted incoming beam")]
-    h += [plt.Line2D([], [], color=COL[m], lw=2.2, label=f"{NAME[m]}, 5–95%") for m in MODELS]
-    ax.legend(handles=h, loc="upper center", bbox_to_anchor=(0.5, -0.11), ncol=3, fontsize=8.5)
-    title(fig, "Every shot leaves the collision broader than it arrived;\nonly stochastic emission predicts that")
-    save(fig, "p70_shots.png")
+    lo = min(min(r["mean_only"]["pred_P70_p5_p50_p95"][0], r["obs_P70"], inc[r["shot"]]) for r in rows)
+    hi = max(max(r["mean_only"]["pred_P70_p5_p50_p95"][2], r["obs_P70"], inc[r["shot"]]) for r in rows)
+    fig, axs = plt.subplots(1, 3, figsize=(10.0, 4.8), sharey=True)
+    for ax, mdl in zip(axs, MODELS):
+        n_in = 0
+        for r in (r for r in rows if r["model"] == mdl):
+            s = r["shot"]
+            p5, p50, p95 = r["mean_only"]["pred_P70_p5_p50_p95"]
+            inside = 0.025 <= r["mean_only"]["pit_P70"] <= 0.975
+            n_in += inside
+            ax.plot([p5, p95], [s, s], color=COL[mdl], lw=7, alpha=0.28, solid_capstyle="round")
+            ax.plot([p50, p50], [s - 0.22, s + 0.22], color=COL[mdl], lw=2)
+            ax.plot(inc[s], s, "o", mfc="none", mec="#999", ms=7, mew=1.3)
+            ax.plot(r["obs_P70"], s, "D", color="black" if inside else "#c62828", ms=6.5)
+        ax.set_title(f"{NAME[mdl]}\nmatches {n_in} of {len(shots)} shots", loc="left", fontsize=10, color=COL[mdl], fontweight="bold")
+        ax.set_xlim(lo - 0.05, hi + 0.05)
+        ax.grid(axis="y", visible=False)
+        ax.set_xlabel("P70 (1/GeV)")
+    axs[0].set(yticks=shots, yticklabels=[f"shot {s}" for s in shots], ylim=(max(shots) + 0.6, -0.6))
+    h = [plt.Line2D([], [], marker="D", color="black", ls="", label="Observed, inside predicted range"),
+         plt.Line2D([], [], marker="D", color="#c62828", ls="", label="Observed, outside"),
+         plt.Line2D([], [], marker="o", mfc="none", mec="#999", ls="", ms=7, label="Predicted incoming beam"),
+         plt.Line2D([], [], color="#888", lw=7, alpha=0.35, label="Model's 90% predicted range")]
+    fig.legend(handles=h, loc="lower center", ncol=4, fontsize=8.5, bbox_to_anchor=(0.5, 0.0))
+    title(fig, "Every shot leaves the collision broader than it arrived; only stochastic emission predicts that")
+    fig.tight_layout(rect=(0, 0.07, 1, 1))
+    check_fits(fig, "p70_shots.png")
+    fig.savefig(OUT / "p70_shots.png", dpi=150)
+    plt.close(fig)
+    print("wrote", OUT / "p70_shots.png")
 
 
 # ------------------------------------------------------------------ Bayes factors

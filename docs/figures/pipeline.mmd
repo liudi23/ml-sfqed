@@ -1,0 +1,11 @@
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "DejaVu Sans, Liberation Sans, sans-serif", "fontSize": "17px", "edgeLabelBackground": "#ffffff", "primaryColor": "#eef3fa", "primaryBorderColor": "#2b6cb0", "primaryTextColor": "#1a202c", "lineColor": "#4a5568"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42, "curve": "basis"}}}%%
+flowchart LR
+    A["<b>Gemini 2021 LWFA</b><br/>645 shots<br/>diagnostics + spectra"] --> B["<b>Stage 1 · Beam model</b><br/>LightGBM + peak model<br/>conformal calibration"]
+    B --> C["<b>Beam pool</b><br/>1,935 spectra"]
+    C --> D["<b>Stage 2 · Ptarmigan MC</b><br/>8,192-run Sobol scan<br/>3 radiation-reaction models"]
+    D --> E["<b>Stage 3 · Surrogate</b><br/>MLP ensemble<br/>calibrated intervals"]
+    E --> F["<b>Stage 4 · Inference</b><br/>emcee posteriors<br/>Bayesian model comparison"]
+    G["<b>Los et al. 2024</b><br/>10 collision shots"] --> F
+    B -. "measured beam error" .-> F
+    classDef data fill:#f4f4f2,stroke:#8a8f98,color:#1a202c
+    class A,G data

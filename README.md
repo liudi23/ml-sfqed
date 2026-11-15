@@ -24,16 +24,11 @@ Full write-up: **[docs/report.md](docs/report.md)**.
 
 ## Pipeline
 
-```mermaid
-flowchart LR
-    A["Gemini 2021 LWFA<br/>645 shots: diagnostics + spectra"] --> B["Stage 1 · Beam model<br/>LightGBM + peak model<br/>conformal calibration"]
-    B --> C["Beam pool<br/>1,935 spectra"]
-    C --> D["Stage 2 · Ptarmigan MC<br/>8,192-run Sobol scan<br/>3 radiation-reaction models"]
-    D --> E["Stage 3 · Surrogate<br/>MLP ensemble<br/>calibrated intervals"]
-    E --> F["Stage 4 · Inference<br/>emcee posteriors<br/>Bayesian model comparison"]
-    G["Los et al. 2024<br/>10 collision shots"] --> F
-    B -. "measured beam error" .-> F
-```
+<p align="center">
+  <img src="docs/figures/pipeline.png" width="900" alt="Pipeline: Gemini data to Stage 1 beam model, beam pool, Stage 2 Ptarmigan scan, Stage 3 surrogate and Stage 4 inference on the Los et al. collision shots">
+</p>
+
+<sub>Diagram source: <code>docs/figures/pipeline.mmd</code> (render with <code>mmdc -i docs/figures/pipeline.mmd -o docs/figures/pipeline.png -s 3 -b white</code>).</sub>
 
 Every stage's uncertainty is checked on data it never saw: conformal calibration and coverage tests (stages 1 and 3), validation against analytic limits (stage 2), and recovery tests on simulated shots with known answers plus posterior predictive checks (stage 4).
 
