@@ -40,7 +40,7 @@ Radiation reaction is the recoil an electron feels from the light it emits. When
 
 The hard part is the incoming beam. Each shot's electron spectrum cannot be measured before the collision, so it is predicted from laser and plasma diagnostics, and that prediction error feeds straight into any claim about radiation reaction. Streeter et al. (2023) trained a neural-network ensemble to make these predictions and released the data. Los et al. (2024) used them to infer collision parameters and compare radiation-reaction models, at ~19,200 CPU-hours per inference.
 
-This project asks: can a calibrated beam model plus a fast surrogate reproduce that inference cheaply, and is the beam uncertainty it relies on honest?
+This project asks two questions. Can a beam model with well-tested uncertainties, combined with a fast stand-in for the simulation, repeat that analysis at a small fraction of the cost? And is the published uncertainty on the predicted incoming beam realistic, or does it understate how wrong those predictions can be?
 
 ## Data
 
