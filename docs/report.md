@@ -11,7 +11,21 @@ In this project we build an end-to-end pipeline that turns raw data from a stron
 3. **Surrogate**: a neural-network ensemble that reproduces the simulation's observables about a million times faster, with its own calibrated error.
 4. **Inference**: Bayesian parameter estimation and model comparison on the 10 public collision shots.
 
-**What it is for.** Given one collision shot, the pipeline returns the collision parameters (the laser strength a0 the electrons experienced, timing, alignment) and the evidence for each radiation-reaction model, with the incoming-beam, measurement and surrogate uncertainties all propagated. Because one shot takes under a minute on a laptop, the analysis can be rerun under different assumptions, checked on simulated shots with known answers, or run during a campaign to judge which shots are informative. The same structure carries over to other laser–electron collision experiments.
+**What goes in, what comes out.**
+
+| | |
+| --- | --- |
+| **Built once per campaign from** | no-collision shots (laser and plasma diagnostics + measured electron spectrum; 645 Gemini shots) to train the beam model; Ptarmigan simulations for each radiation-reaction model (8,192 + 2 × 4,096 collisions) to train the surrogates; fixed experimental settings (laser waist and duration, beam size, spectrometer resolution) |
+| **Input per collision shot** | the shot's laser and plasma diagnostics, turned into predicted incoming spectra by the beam model (for the 2021 data the collision-shot diagnostics are not public, so Los et al.'s published predictions are used, widened to our measured error); the measured outgoing electron spectrum |
+| **Output per collision shot** (under a minute on a laptop) | the effective laser strength a0 the electrons experienced, the timing offset from focus, bunch length and optionally the sideways offset, all with uncertainty; the evidence for stochastic, continuous and classical radiation reaction (Bayes factors per shot and summed); each model's predicted observables with intervals, to check the fit against the measurement |
+| **Reusable parts** | the beam model (diagnostics → electron spectrum with calibrated uncertainty), useful to laser-wakefield teams on its own; the surrogate (collision parameters + incoming beam → Ptarmigan's observables, about a million times faster) |
+
+**Problems it solves.**
+
+- **Cost of the analysis.** For strong-field QED experiments (Gemini, LUXE, E-320, ZEUS): every collision shot can be analysed, not only the brightest; the analysis can be rerun under different assumptions; parameters fixed for cost can be freed; and it is fast enough to run between shots during a campaign.
+- **Trust in the conclusion.** Every uncertainty is measured on data the model did not see. On the 2021 data this turns a strong published preference into a still-clear but smaller one.
+- **Knowing what the data can tell you.** Tests on simulated shots show which quantities a measurement pins down (here the effective field and, through P70, the radiation-reaction model, but not the peak field), which helps decide what a future experiment should measure.
+- **Predicting the beam.** Laser-wakefield operators get a predicted spectrum with honest error bars for shots where the beam cannot be measured directly.
 
 **Why it improves on the existing analysis** (Los et al. 2024, direct simulation in the likelihood):
 
@@ -25,7 +39,7 @@ In this project we build an end-to-end pipeline that turns raw data from a stron
 - **The published per-shot beam uncertainty is about 3× too narrow.** Using the measured error widens the field-strength posteriors by ~46% and cuts the stochastic-vs-classical Bayes factor by ~40%.
 - **Spectral broadening favours stochastic quantum radiation reaction.** On every shot the outgoing spectrum is broader than the predicted incoming beam. Only stochastic emission reproduces this: the measured P70 falls inside its 90% predicted range on 9 of 10 shots (the tenth just outside), against 2 of 10 for classical and continuous models. The summed log Bayes factor over classical is +20 with realistic beam uncertainty (+9 with the transverse offset also free).
 
-**Limitations.** The likelihood uses two summary observables (mean energy and the peak measure P70), which constrain only the effective field strength; a full-spectrum likelihood is the next step and the real test of the stochastic preference. The gamma-ray data are not yet used, and on low-loss shots our field strength is lower than Los et al.'s, who fit them. The beam model is trained on no-collision shots, and about 30% of each beam's energy sits in a secondary population the diagnostics cannot predict. Laser waist, duration, beam radius and divergence are fixed, and the surrogate is valid only inside the simulated ranges (a0 ≤ 20).
+**Limitations.** The likelihood uses two summary observables (mean energy and the peak measure P70), which constrain only the effective field strength; a full-spectrum likelihood is the next step and the real test of the stochastic preference. The gamma-ray data are not yet used, and on low-loss shots our field strength is lower than Los et al.'s, who fit them. The beam model is trained on no-collision shots, and about 30% of each beam's energy sits in a secondary population the diagnostics cannot predict. Laser waist, duration, beam radius and divergence are fixed, and the surrogate is valid only inside the simulated ranges (a0 ≤ 20). It is trained for the Gemini 2021 set-up: a new experiment needs its own beam data and simulation scan, though the code carries over.
 
 | Stage | Result |
 | --- | --- |

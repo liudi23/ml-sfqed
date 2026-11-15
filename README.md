@@ -6,11 +6,25 @@
 
 In this project we build an end-to-end pipeline that turns raw data from a strong-field QED experiment into fast, calibrated Bayesian inference. It is applied to the 2021 radiation-reaction experiment at the Gemini laser, where a laser-wakefield electron beam collides with an intense laser pulse and the change in the electron spectrum shows how electrons radiate when quantum effects matter. The pipeline chains a machine-learning model of the incoming electron beam, Ptarmigan QED Monte Carlo simulations, a neural surrogate of those simulations, and Bayesian inference on the public collision shots.
 
-**What it is for.** For each collision shot it infers the laser strength a0 the electrons experienced (with timing and alignment) and weighs classical, quantum-continuous and quantum-stochastic radiation reaction against each other, with the uncertainty of the incoming beam, the measurement and the surrogate all propagated.
+**What goes in, what comes out.**
+
+| | |
+| --- | --- |
+| **Built once per campaign from** | no-collision shots (laser and plasma diagnostics + measured electron spectrum; 645 Gemini shots) to train the beam model; Ptarmigan simulations for each radiation-reaction model (8,192 + 2 × 4,096 collisions) to train the surrogates; fixed experimental settings (laser waist and duration, beam size, spectrometer resolution) |
+| **Input per collision shot** | the shot's laser and plasma diagnostics, turned into predicted incoming spectra by the beam model (for the 2021 data the collision-shot diagnostics are not public, so Los et al.'s published predictions are used, widened to our measured error); the measured outgoing electron spectrum |
+| **Output per collision shot** (under a minute on a laptop) | the effective laser strength a0 the electrons experienced, the timing offset from focus, bunch length and optionally the sideways offset, all with uncertainty; the evidence for stochastic, continuous and classical radiation reaction (Bayes factors per shot and summed); each model's predicted observables with intervals, to check the fit against the measurement |
+| **Reusable parts** | the beam model (diagnostics → electron spectrum with calibrated uncertainty), useful to laser-wakefield teams on its own; the surrogate (collision parameters + incoming beam → Ptarmigan's observables, about a million times faster) |
+
+**Problems it solves.**
+
+- **Cost of the analysis.** For strong-field QED experiments (Gemini, LUXE, E-320, ZEUS): every collision shot can be analysed, not only the brightest; the analysis can be rerun under different assumptions; parameters fixed for cost can be freed; and it is fast enough to run between shots during a campaign.
+- **Trust in the conclusion.** Every uncertainty is measured on data the model did not see. On the 2021 data this turns a strong published preference into a still-clear but smaller one.
+- **Knowing what the data can tell you.** Tests on simulated shots show which quantities a measurement pins down (here the effective field and, through P70, the radiation-reaction model, but not the peak field), which helps decide what a future experiment should measure.
+- **Predicting the beam.** Laser-wakefield operators get a predicted spectrum with honest error bars for shots where the beam cannot be measured directly.
 
 **Why it is better than the existing analysis** (Los et al. 2024, direct simulation in the likelihood): one shot takes **42 CPU-seconds instead of ~19,200 CPU-hours**, which makes recovery tests, extra free parameters and sensitivity studies affordable; the incoming-beam uncertainty is **measured on held-out shots** rather than taken from the network ensemble (it is ~3× larger); the beam prediction itself is more accurate; and every stage is checked on data it never saw.
 
-**Limitations.** The likelihood uses two summary observables of the electron spectrum and not yet the gamma-ray data; a full-spectrum likelihood is the next step. See [Limitations and next steps](#limitations-and-next-steps).
+**Limitations.** The likelihood uses two summary observables of the electron spectrum and not yet the gamma-ray data; a full-spectrum likelihood is the next step. It is trained for the Gemini 2021 set-up: a new experiment needs its own beam data and simulation scan, though the code carries over. See [Limitations and next steps](#limitations-and-next-steps).
 
 <p align="center">
   <img src="docs/figures/rr_sweep.gif" width="720" alt="Animated outgoing electron spectra for classical, continuous and stochastic radiation reaction as the laser strength a0 rises">
