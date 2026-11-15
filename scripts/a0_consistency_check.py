@@ -6,12 +6,12 @@ For each of the 10 public shots: the median predicted incoming beam, a head-on c
 (dz = 0, transverse offset 0, waist 2.5 um, 45 fs, source size 0.68 um, length 5 um), quantum-stochastic
 radiation reaction, a0 = 3, 5, 7, 9, 12. Records the outgoing mean energy above 305 MeV and the photon
 critical energy, and finds the a0 at focus that reproduces the measured mean energy.
-Result (15 Nov 2026): shots with 34-43 MeV implied loss need a0 = 7-8 and shot 0 (77 MeV) ~12.5, matching
-Los et al.'s peak a0 (7-9, one 13.3); shots whose predicted incoming mean is within ~20 MeV of the measured
-mean (about the incoming-beam error, 18 MeV) give a0 3.5-5.5 or are undetermined. Los et al. also fit the
-gamma-ray signal, which constrains a0 independently. The public photon spectra are not directly usable here:
-a critical energy fitted to them is 45-60 MeV on every shot vs 13-35 MeV simulated, i.e. the detector response
-must be forward-modelled first. Writes results/inference/a0_consistency_check.json.
+Result (15 Nov 2026): shots 3, 4, 6 (34-43 MeV implied loss) need a0 = 7.2, 8.2, 8.1, against Los et al.'s
+effective <a0~> 6.7, 9.4, 7.2 (their shot n = our shot n-1); shot 0 (77 MeV) needs ~12.5 (theirs 7.8); shots whose
+predicted incoming mean is within ~20 MeV of the measured mean (about the incoming-beam error, 18 MeV) give a0 3.5-5.5
+or are undetermined. Los et al. also fit the gamma-ray signal, which constrains a0 independently. The public photon
+spectra are not directly usable here: a critical energy fitted to them is 45-60 MeV on every shot vs 13-35 MeV
+simulated, i.e. the detector response must be forward-modelled first. Writes results/inference/a0_consistency_check.json.
 """
 
 import json

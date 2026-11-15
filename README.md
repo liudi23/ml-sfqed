@@ -4,7 +4,13 @@
 
 [![CI](https://github.com/liudi23/ml-sfqed/actions/workflows/ci.yml/badge.svg)](https://github.com/liudi23/ml-sfqed/actions/workflows/ci.yml)
 
-An end-to-end pipeline from real laser–plasma data to Bayesian model comparison: a calibrated ML model of the electron beam, a validated QED Monte Carlo, a neural surrogate, and surrogate-accelerated inference on public collision data from the 2021 Gemini radiation-reaction experiment.
+In this project we build an end-to-end pipeline that turns raw data from a strong-field QED experiment into fast, calibrated Bayesian inference. It is applied to the 2021 radiation-reaction experiment at the Gemini laser, where a laser-wakefield electron beam collides with an intense laser pulse and the change in the electron spectrum shows how electrons radiate when quantum effects matter. The pipeline chains a machine-learning model of the incoming electron beam, Ptarmigan QED Monte Carlo simulations, a neural surrogate of those simulations, and Bayesian inference on the public collision shots.
+
+**What it is for.** For each collision shot it infers the laser strength a0 the electrons experienced (with timing and alignment) and weighs classical, quantum-continuous and quantum-stochastic radiation reaction against each other, with the uncertainty of the incoming beam, the measurement and the surrogate all propagated.
+
+**Why it is better than the existing analysis** (Los et al. 2024, direct simulation in the likelihood): one shot takes **42 CPU-seconds instead of ~19,200 CPU-hours**, which makes recovery tests, extra free parameters and sensitivity studies affordable; the incoming-beam uncertainty is **measured on held-out shots** rather than taken from the network ensemble (it is ~3× larger); the beam prediction itself is more accurate; and every stage is checked on data it never saw.
+
+**Limitations.** The likelihood uses two summary observables of the electron spectrum and not yet the gamma-ray data; a full-spectrum likelihood is the next step. See [Limitations and next steps](#limitations-and-next-steps).
 
 <p align="center">
   <img src="docs/figures/rr_sweep.gif" width="720" alt="Animated outgoing electron spectra for classical, continuous and stochastic radiation reaction as the laser strength a0 rises">
@@ -78,7 +84,8 @@ P70's lower R² reflects its small spread relative to Monte Carlo noise (ceiling
 ## Limitations and next steps
 
 - Inference uses two summary observables, which constrain only the effective field strength. A **full-spectrum likelihood** that models the incoming spectrum's shape error is the next step, and the confirmation test for the stochastic preference.
-- Our effective a0 (the field the beam actually sees) is not Los et al.'s ã0 (the peak a0 at focus), so the two should not be compared directly. A direct Ptarmigan check at focus (`scripts/a0_consistency_check.py`) recovers their a0 ≈ 7–8 on the shots with clear energy loss; on the five shots whose loss is within the 18 MeV incoming-beam error, electron data alone cannot pin a0. Their analysis also fits the gamma-ray signal; adding a photon observable needs the spectrometer response modelled first.
+- Gamma-ray data are not used yet. Los et al.'s effective field strength ⟨ã0⟩ (the mean a0 experienced by the electrons in their model) is 6.7–9.4 on nine shots; ours is mostly 4–7. A direct Ptarmigan check (`scripts/a0_consistency_check.py`) agrees with theirs to about 1 on the three shots with 34–43 MeV energy loss. On the five low-loss shots the electron spectrum cannot pin a0 (the loss is within 1–1.5× the 18 MeV incoming-beam error), and Los et al. also fit the gamma-ray signal. Adding it needs their gamma spectrometer forward-modelled first.
+- About 30% of each beam's energy is in a secondary electron population that the diagnostics cannot predict, which sets a floor on the beam-model error.
 - Laser waist, duration, beam radius and divergence are fixed in inference.
 
 ## Reproduce

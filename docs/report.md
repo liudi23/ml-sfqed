@@ -4,10 +4,28 @@ Di Liu · November 2026 · code: this repository
 
 ## Summary
 
-A calibrated beam model plus a neural surrogate of Ptarmigan turns a 19,200 CPU-hour Bayesian analysis of a strong-field QED experiment into 42 CPU-seconds per shot. Used on the 10 public collision shots of the 2021 Gemini radiation-reaction campaign, it shows two things:
+In this project we build an end-to-end pipeline that turns raw data from a strong-field QED experiment into fast, calibrated Bayesian inference. The target is the radiation-reaction experiment at the Gemini laser (2021): a laser-wakefield electron beam collides with an intense laser pulse, and the change in the electrons' energy spectrum shows how they radiate in a field strong enough for quantum effects on radiation reaction to matter (quantum parameter χ ≈ 0.1–0.2). The pipeline chains four parts:
 
-- **The published per-shot beam uncertainty is about 3× too narrow.** Using the error measured on held-out shots widens the field-strength posteriors by ~46% and cuts the stochastic-vs-classical Bayes factor by ~40%.
+1. **Beam model**: machine learning that predicts each shot's incoming electron spectrum from laser and plasma diagnostics, with calibrated uncertainty, since that spectrum cannot be measured on a collision shot.
+2. **Simulation**: Ptarmigan Monte Carlo of the collision for classical, quantum-continuous and quantum-stochastic radiation reaction.
+3. **Surrogate**: a neural-network ensemble that reproduces the simulation's observables about a million times faster, with its own calibrated error.
+4. **Inference**: Bayesian parameter estimation and model comparison on the 10 public collision shots.
+
+**What it is for.** Given one collision shot, the pipeline returns the collision parameters (the laser strength a0 the electrons experienced, timing, alignment) and the evidence for each radiation-reaction model, with the incoming-beam, measurement and surrogate uncertainties all propagated. Because one shot takes under a minute on a laptop, the analysis can be rerun under different assumptions, checked on simulated shots with known answers, or run during a campaign to judge which shots are informative. The same structure carries over to other laser–electron collision experiments.
+
+**Why it improves on the existing analysis** (Los et al. 2024, direct simulation in the likelihood):
+
+- **Speed**: 42 CPU-seconds per shot instead of ~19,200 CPU-hours, which makes recovery tests, extra free parameters and sensitivity studies affordable.
+- **Honest beam uncertainty**: the incoming-beam error, measured on held-out shots, is 2.4–2.8× the published per-shot spread; we propagate the measured one.
+- **Better beam prediction**: spectral MSE 0.045 against 0.057 for the published network ensemble, with a physics-based peak shape whose parameters mean something (the dephasing-limited maximum energy).
+- **Every stage checked on unseen data**: coverage tests for both learned models, validation against analytic limits for the simulation, recovery tests and posterior predictive checks for the inference.
+
+**What it finds** on the 2021 data:
+
+- **The published per-shot beam uncertainty is about 3× too narrow.** Using the measured error widens the field-strength posteriors by ~46% and cuts the stochastic-vs-classical Bayes factor by ~40%.
 - **Spectral broadening favours stochastic quantum radiation reaction.** On every shot the outgoing spectrum is broader than the predicted incoming beam. Only stochastic emission reproduces this; classical and continuous models miss on 8 of 10 shots. The summed log Bayes factor over classical is +20 with realistic beam uncertainty (+9 with the transverse offset also free).
+
+**Limitations.** The likelihood uses two summary observables (mean energy and the peak measure P70), which constrain only the effective field strength; a full-spectrum likelihood is the next step and the real test of the stochastic preference. The gamma-ray data are not yet used, and on low-loss shots our field strength is lower than Los et al.'s, who fit them. The beam model is trained on no-collision shots, and about 30% of each beam's energy sits in a secondary population the diagnostics cannot predict. Laser waist, duration, beam radius and divergence are fixed, and the surrogate is valid only inside the simulated ranges (a0 ≤ 20).
 
 | Stage | Result |
 | --- | --- |
@@ -33,9 +51,34 @@ This project asks: can a calibrated beam model plus a fast surrogate reproduce t
 
 The beam drifts during the day: mean beam energy falls from 0.90 J to 0.52 J between runs 05 and 13. Two splits are used: the authors' random 570/75 split for direct comparison, and a **time split** (train runs 05–12, test run 13), the honest test for predicting a later collision shot.
 
+## Models at a glance
+
+Four models are chained, each passing a calibrated uncertainty to the next:
+
+```
+shot diagnostics ──► [1] beam model ──► incoming spectra (samples) ─┐
+                                                                     ├─► [3] surrogate ──► outgoing observables ──► [4] likelihood + sampler
+collision parameters ───────────────────────────────────────────────┘        ▲
+                                                [2] Ptarmigan Monte Carlo ───┘ (training data)
+```
+
+| Stage | Model (adopted) | Learns | Inputs → outputs | Uncertainty | Alternatives compared | Code |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 Beam | Bagged LightGBM ensembles (20 members, each on a random 50% of shots), one per target; Gaussian process averaged into the peak position | Incoming electron spectrum from laser/plasma diagnostics | 58 diagnostic features → log W, 3 peak parameters, 10 continuum PCA coefficients → dW/dE on 200 bins | Paired out-of-bag residuals + per-bin split-conformal calibration | Train mean, ridge on PCA, bagged LightGBM/MLP on whole-spectrum PCA, two-part (W × PCA shape), Gaussian peak | `beam_model/twopart.py` (`PeakBeamModel`) |
+| 2 Simulation | Ptarmigan v1.6.1 (stochastic, continuous and classical radiation reaction) | – (physics, not learned) | Collision parameters + incoming spectrum → outgoing electrons and photons | Monte Carlo noise (5,000 macro-electrons) | LCFA vs LMA rates | `simulation/` |
+| 3 Surrogate | MLP ensemble, 5 networks × 2 hidden layers of 128; one per radiation-reaction model | Ptarmigan's outgoing observables | 23 features (collision, derived, beam) → 9 observables | Ensemble spread × per-observable conformal factor | LightGBM per observable | `surrogate/models.py` (`MLPEnsemble`) |
+| 4 Inference | Gaussian likelihood on mean energy and P70; emcee (32 walkers); evidence by Monte Carlo over the prior | Collision parameters and model evidence per shot | Measured outgoing spectrum + 50 predicted incoming spectra → posteriors, log Z | Beam, measurement and surrogate variances added | Published vs measured beam spread; offset fixed vs free | `inference/posterior.py` |
+
+All tree models are LightGBM with `n_jobs=1` and fixed seeds, so every number in this report is reproducible. The Stage 2 beam pool was drawn from the first version of the beam model (Gaussian peak); the adopted square-root-edge model is used for everything downstream of it (beam-error measurement, inference, model comparison).
+
 ## Stage 1: calibrated beam model
 
 Each spectrum is total beam energy W times a normalised shape. The shape is a data-driven PCA continuum (10 components) plus a physics-based square-root-edge peak (see *Physics of the peak shape* below), dW/dE = W × [continuum(E) + A · edge(E; E_max, σ)]. log W, the three peak parameters (edge energy E_max, width σ, height A) and the continuum coefficients are each regressed separately by bagged LightGBM ensembles. (The earlier "peak model" rows in the table use a Gaussian peak with centre, width and height instead.) The edge energy is predicted by the LightGBM ensemble averaged with a Gaussian process (RBF kernel, one length scale per feature): trees give step-like and the GP smooth predictions, so their errors differ. Blending was chosen on run 11 (trained on runs 05–10), where it cut the position error from 52 to 47 MeV; blending height or width did not help. Uncertainty comes from out-of-bag paired residuals, then per-bin split-conformal calibration.
+
+- **Inputs** (58, standardised): laser energy, 6 far-field focal-spot features, the top-view laser-scattering profile (20 points) and the interferometric density profile (31 points).
+- **Targets**, each with its own ensemble: log W; peak height, edge energy and width; 10 PCA coefficients of the continuum (spectrum minus fitted peak). All ensembles share the same bags, so the out-of-bag residuals of one training shot are drawn together and keep their correlations.
+- **Point prediction** = the spectrum at the predicted parameters; **samples** = predictions plus one training shot's paired residuals, rescaled per energy bin so that 90% bands cover 90% on calibration shots.
+- **Baselines** in the table: the train mean, ridge regression and bagged LightGBM/MLP ensembles on the whole-spectrum PCA coefficients (as Streeter et al.), and the two-part model W × PCA shape without a peak.
 
 | Split | Model | Spectral MSE | Beam-energy rel. RMS | 90% coverage (calibrated) |
 | --- | --- | --- | --- | --- |
@@ -79,7 +122,15 @@ Production runs use LMA rates, stochastic quantum radiation reaction, no pair cr
 
 ## Stage 3: surrogate
 
-A 5-member MLP ensemble (2 × 128 hidden units) on collision parameters plus beam descriptors (charge, energy, mean energy, 6 shape-PCA coefficients) and derived geometric features. Test collisions use incoming beams never seen in training (1,641 test, 967 calibration, 5,584 training runs).
+The surrogate replaces Ptarmigan inside the likelihood. It is a deep ensemble: 5 MLPs (2 hidden layers of 128 ReLU units, scikit-learn, Adam, early stopping on 10% of the training data), identical except for their random seed, each predicting all 9 standardised observables at once.
+
+- **Inputs** (23): 9 collision parameters (a0, waist, duration, transverse offset and its angle, longitudinal offset, beam radius, length, divergence); 4 derived features that carry the main physical dependence (geometric effective a0, dz/z_R, offset/waist, estimated χ); 10 incoming-beam descriptors (charge, beam energy, mean energy overall and above 305 MeV, 6 shape-PCA coefficients).
+- **Outputs** (9): electron energy loss (all and above 305 MeV), energy spread, P70; photon yield and energy per electron (log), critical energy, angular spreads in two planes.
+- **Uncertainty**: the spread across the 5 networks, multiplied by a per-observable split-conformal factor fitted on a calibration set of whole incoming beams.
+- **One surrogate per radiation-reaction model** (stochastic, continuous, classical), trained on the same collisions, so the Bayes factors compare like with like.
+- **Split by incoming beam**: 5,584 training, 967 calibration and 1,641 test runs; test collisions use beams never seen in training. Training takes ~8 s.
+
+Test accuracy of the adopted MLP ensemble:
 
 | Observable | R² | RMSE | RMSE / MC noise | 90% coverage raw → calibrated |
 | --- | --- | --- | --- | --- |
@@ -89,7 +140,11 @@ A 5-member MLP ensemble (2 × 128 hidden units) on collision parameters plus bea
 | Photon critical energy | 0.983 | 0.9 MeV | 1.8 | 0.86 → 0.90 |
 | log₁₀ photons per electron | 0.994 | 0.032 | 6.5 | 0.94 → 0.90 |
 
-P70's lower R² reflects its small spread relative to Monte Carlo noise (the noise ceiling is ~0.95), not a worse fit. Holding out the band a0 > 16.5 raises the energy-loss RMSE to 4.6 MeV (LightGBM 8.8 MeV). Photon observables are still data-limited (error ∝ N^-0.65); electron observables have saturated near the noise floor.
+P70's lower R² reflects its small spread relative to Monte Carlo noise (the noise ceiling is ~0.95), not a worse fit.
+
+**Why an MLP and not trees.** A LightGBM model per observable (800 trees) is the baseline. On the same test set it is slightly worse everywhere (R² 0.972 vs 0.979 for energy loss above 305 MeV, 0.75 vs 0.79 for P70, 0.978 vs 0.983 for critical energy), and much worse when extrapolating: holding out the band a0 > 16.5 raises the energy-loss RMSE to 4.6 MeV for the MLP and 8.8 MeV for LightGBM, because trees are piecewise constant. The MLP is also smooth in the parameters, which the MCMC sampler needs. Speed against Ptarmigan: ~18,000× per single call, ~4×10⁶× batched (LightGBM ~27,000× batched).
+
+**Spectrum surrogate** (not yet used in inference): the same MLP ensemble predicting 12 PCA coefficients of the square-root electron spectrum reproduces whole outgoing spectra to 12% relative L1 error (mean-energy error 5.2 MeV). It is the starting point for the full-spectrum likelihood. Photon observables are still data-limited (error ∝ N^-0.65); electron observables have saturated near the noise floor.
 
 ![Learning curve](../results/stage3/learning_curve.png)
 
@@ -107,16 +162,18 @@ P70's lower R² reflects its small spread relative to Monte Carlo noise (the noi
 
 Only the effective field strength is constrained: offsets and bunch length stay prior-dominated, and a larger a0 at an offset gives the same energy loss.
 
-**Comparison with Los et al.'s field strength.** Our effective a0 (3–7 on most shots) is lower than their ã0 (6.7–9.4, one shot 13.3), but the two are different quantities: ã0 is the peak a0 at focus, while the effective a0 is the field the electrons actually experience after the offsets. Both codes use the same peak-field definition of a0, and the 2.1 vs 2.5 µm waist changes the energy loss by only 2–3 MeV. A direct Ptarmigan check removes the surrogate and the geometry (`scripts/a0_consistency_check.py`: median predicted incoming beam, head-on at focus, stochastic emission, a0 = 3–12):
+**Comparison with Los et al.'s field strength.** Los et al. report ã0, the distribution of a0 that the electrons experience in their forward model (transverse offset fixed at zero), which they call an "effective" value; its mean ⟨ã0⟩ is the number quoted per shot. Our effective a0 is the same kind of quantity, evaluated at the beam centroid, and both codes define a0 by the peak field. Their quantum-stochastic ⟨ã0⟩ is 6.7–9.4 on nine shots and 13.3 (spread 8.6) on the tenth; ours is mostly 4–7. To separate the physics from our surrogate and geometry, a direct Ptarmigan check (`scripts/a0_consistency_check.py`: median predicted incoming beam, head-on at focus, beam radius 0.68 µm, stochastic emission, a0 = 3–12) finds the a0 that reproduces each shot's measured mean energy. Their shot n is our shot n − 1.
 
-| Shots | Energy loss (predicted incoming − measured) | a0 at focus that reproduces it |
-| --- | --- | --- |
-| 3, 4, 6 | 35–43 MeV | 7.2–8.2 (Los et al.: 6.7–7.7) |
-| 0 | 77 MeV | ≈ 12.5 (Los et al.: 9.4) |
-| 1, 2, 5, 7 | 11–23 MeV | 3.5–5.5 |
-| 8, 9 | ≤ 5 MeV | not determined |
+| Shot | Energy loss (predicted incoming − measured) | a0 that reproduces it | Los et al. ⟨ã0⟩ (stochastic) |
+| --- | --- | --- | --- |
+| 3 | 34 MeV | 7.2 | 6.7 |
+| 4 | 43 MeV | 8.2 | 9.4 |
+| 6 | 39 MeV | 8.1 | 7.2 |
+| 0 | 77 MeV | ≈ 12.5 | 7.8 |
+| 1, 2, 5, 7 | 11–23 MeV | 3.5–5.5 | 6.7–7.7 |
+| 8, 9 | ≤ 5 MeV | not determined | 9.1, 13.3 |
 
-At focus, Los et al.'s a0 of 7–9 implies 31–50 MeV of loss. On the shots with that much loss we recover their value. On the other five, the implied loss is 10–30 MeV smaller, about 1–1.5 times the measured incoming-beam error (18 MeV), so the electron spectrum alone cannot tell a weak field from a beam that started low. Los et al. also fit the gamma-ray signal, which constrains a0 independently of the incoming beam. The difference is therefore a matter of what the data constrain, not a disagreement in the physics or the code.
+On the three shots with 34–43 MeV loss the two agree to about 1. Elsewhere they part in both directions: Los et al.'s ⟨ã0⟩ changes little from shot to shot while the electron energy loss ranges from about 0 to 77 MeV. Two things explain this. First, on the five low-loss shots the loss that a0 ≈ 7–8 would cause (31–40 MeV) exceeds the observed one by 10–30 MeV, about 1–1.5 times the incoming-beam error (18 MeV), so the electron spectrum alone cannot tell a weak field from a beam that started low. Second, Los et al. also fit the gamma-ray spectrometer signal, which constrains a0 independently of the incoming beam, and their forward model has additional effective parameters (electron bunch duration, energy-dependent timing) that can absorb part of the electron energy loss. Settling it shot by shot needs the photon data in our likelihood, which requires forward-modelling their gamma spectrometer (see Limitations).
 
 ## Radiation-reaction model comparison
 
@@ -153,9 +210,10 @@ Summed natural-log Bayes factors over 10 shots. Los et al.'s values are differen
 ## Limitations and next steps
 
 - **Two summary observables** constrain only the effective a0. A full-spectrum likelihood, with the incoming spectrum's shape error modelled explicitly, is the next step and the confirmation test for the stochastic preference.
-- **Photon data are not used.** Los et al. also fit the gamma-ray spectrometer signal. A critical energy fitted to the public photon spectra is 45–60 MeV on every shot, against 13–35 MeV from Ptarmigan for a0 = 3–12, so that signal can only enter after forward-modelling the detector response.
+- **Photon data are not used.** Los et al. also fit the gamma-ray spectrometer signal, which is the most likely reason their ã0 differs from ours on the low-loss shots and on shot 0. A critical energy fitted to the public photon spectra is 45–60 MeV on every shot, against 13–35 MeV from Ptarmigan for a0 = 3–12, so that signal can only enter after forward-modelling the detector response.
 - **Fixed nuisances**: laser waist, duration, beam radius and divergence are fixed in inference.
-- **Beam transfer**: the beam model is trained on 2021 no-collision shots and reaches the collision shots only through published predictions.
+- **Beam transfer**: the beam model is trained on 2021 no-collision shots and reaches the collision shots only through published predictions; about 30% of each beam's energy is in a secondary population the diagnostics cannot predict.
+- **Surrogate range**: valid inside the simulated ranges (a0 5–20, LMA rates).
 
 ## References
 
