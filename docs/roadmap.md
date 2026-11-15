@@ -4,21 +4,22 @@ Pipeline: real Gemini laser-plasma data → calibrated electron-beam model → P
 
 Status key: ✅ done · 🔄 in progress · ⬜ to do.
 
-## Stage 1 – Beam model from real data ✅ (first version)
+## Stage 1 – Beam model from real data ✅
 - 645 reference shots (no collision) from the 2021 Gemini radiation-reaction campaign (Streeter et al. 2023, CC BY 4.0). Beam energy drifts from 0.90 J to 0.52 J across the day.
-- Model: dW/dE = beam energy × (continuum + explicit Gaussian peak); bagged LightGBM ensembles; out-of-bag residuals drawn as paired sets; per-bin conformal calibration.
+- Model: dW/dE = beam energy × (data-driven PCA continuum + physics-based square-root-edge peak); bagged LightGBM ensembles (peak position averaged with a Gaussian process); out-of-bag residuals drawn as paired sets; per-bin conformal calibration.
 - Evaluation on two splits: the authors' random split (for comparison with the paper) and a time split (train runs 05–12, test run13) for the headline numbers.
 
 | | Spectral MSE | Beam-energy error | 90% band coverage |
 |---|---|---|---|
 | Streeter et al. (authors' split) | 0.057 | 12.4% | – |
-| This work, authors' split | 0.045 | 12.4% | 91% of bins |
-| This work, time split | 0.030 | 14% | 85% of bins, 89% on peak |
+| This work, authors' split | 0.045 | 12.5% | 91% of bins |
+| This work, time split | 0.030 | 14.7% | 85% of bins, 89% on peak |
 
 - Findings: raw ensemble spreads are overconfident (44–68% coverage of a nominal 90% interval) until calibrated; history and physics-based features add nothing because the remaining error is independent shot-to-shot noise; optional online adaptation during a run brings run13 coverage to 89%.
 - Peak shape: physics-based square-root edge (phase-space-rotation pile-up below E_max), closed form; fits 4.4× better than a Gaussian with the same parameters; adopted (tie on run 11, −3 to −4% MSE on the test sets). See `docs/report.md`.
 - Peak position: LightGBM ensemble averaged with a Gaussian process (`GPBlendEnsemble`), chosen on run 11; −3 to −4% spectral MSE. Plotted prediction = spectrum at the predicted peak (keeps ~97% of peak height). Online drift correction studied (`peak_drift_study.py`): −13% width error, −1% MSE, not adopted.
-- Scripts: `run_stage1.py`, `validate_sampler.py`, `compare_shape_models.py`, `feature_study.py`, `online_adaptation.py`.
+- Spectrum components (`spectrum_components_study.py`): a second, broad electron population (median 521 MeV, ~30% of the energy) is in essentially every shot; its position, width and charge are not predictable from the diagnostics (R² ≈ 0), so it stays in the continuum and accounts for much of the irreducible error.
+- Scripts: `run_stage1.py`, `validate_sampler.py`, `compare_shape_models.py`, `feature_study.py`, `online_adaptation.py`, `peak_shape_study.py`, `peak_drift_study.py`, `spectrum_components_study.py`.
 
 ## Stage 2 – Monte Carlo with Ptarmigan ✅
 - ✅ Ptarmigan v1.6.1 build script and validation (`scripts/install_ptarmigan.sh`, `results/ptarmigan_validation/`): classical radiation reaction vs Landau–Lifshitz to ≤0.01%; quantum vs classical and LMA vs LCFA consistent; weak-field Compton edge, a0² scaling and Klein–Nishina-corrected energy loss to ≤1%; Stage 1 sampled beams load through spectrum files.
@@ -43,4 +44,4 @@ Status key: ✅ done · 🔄 in progress · ⬜ to do.
 ## Relation to published work
 - **Streeter et al., HPLSE 11, e9 (2023)** – variational neural-network model of the same LWFA; source of the data and the Stage 1 baseline.
 - **Los et al., Nature Communications (arXiv:2407.12071) and HPLSE (2024, doi:10.1017/hpl.2024.83)** – the same campaign's radiation-reaction analysis: predicted beams from the Streeter et al. network, a custom LCFA Monte Carlo pre-computed into 4-D lookup tables, and Bayesian model comparison on the 10 brightest collision shots (~19,200 CPU-hours per inference; transverse offset fixed for cost).
-- **What this project adds:** calibrated beam uncertainty with a time-split test and drift analysis (they use the uncalibrated ensemble spread); an independent, validated simulator (Ptarmigan, LMA rates); and a learned surrogate aimed at their stated bottleneck – cost, which limited them to 10 shots and forced the transverse offset out of the model.
+- **What this project adds:** calibrated beam uncertainty with a time-split test and drift analysis (they use the uncalibrated ensemble spread, ~2.4–2.8× too narrow); a physics-based beam model (square-root-edge peak from phase-space rotation; MSE 0.045 vs their 0.057); an independent, validated simulator (Ptarmigan, LMA rates); a learned surrogate aimed at their stated bottleneck – cost, which limited them to 10 shots and forced the transverse offset out of the model; and a model comparison that separates stochastic from continuous radiation reaction through spectral broadening, with its sensitivity to the beam uncertainty quantified.
