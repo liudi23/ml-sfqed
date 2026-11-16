@@ -24,7 +24,7 @@ In this project we build an end-to-end pipeline that turns raw data from a stron
 
 **How it builds on earlier work.** Los et al. (2024) carried out the first Bayesian analysis of these collision shots, with the full simulation inside the likelihood. This project follows their observables, radiation-reaction models and inference set-up, and extends them: a learned surrogate brings one shot down to **42 CPU-seconds** (from ~19,200 CPU-hours), which makes recovery tests, extra free parameters and sensitivity studies affordable; the incoming-beam uncertainty is **measured on held-out shots** (about 3× the network ensemble's spread); the beam model is more accurate and physically interpretable; and every stage is checked on data it never saw. The two analyses agree that quantum radiation reaction describes the data better than classical; the spectral broadening (P70) used here also separates stochastic from continuous emission.
 
-**Limitations.** The likelihood uses two summary observables of the electron spectrum and not yet the gamma-ray data; a full-spectrum likelihood is the next step. It is trained for the Gemini 2021 set-up: a new experiment needs its own beam data and simulation scan, though the code carries over. See [Limitations and next steps](#limitations-and-next-steps).
+**Limitations.** The likelihood uses two summary observables of the electron spectrum and not yet the gamma-ray data; a full-spectrum likelihood was built and tested, but has little power while the incoming beam energy is predicted only to ~4%. It is trained for the Gemini 2021 set-up: a new experiment needs its own beam data and simulation scan, though the code carries over. See [Limitations and next steps](#limitations-and-next-steps).
 
 <p align="center">
   <img src="docs/figures/rr_sweep.gif" width="720" alt="Animated outgoing electron spectra for classical, continuous and stochastic radiation reaction as the laser strength a0 rises">
@@ -36,7 +36,7 @@ In this project we build an end-to-end pipeline that turns raw data from a stron
 | --- | --- |
 | **~1.6 million× faster inference** | A full Bayesian fit of one collision shot takes **42 CPU-seconds**, against ~19,200 CPU-hours with direct simulation (Los et al. 2024). |
 | **Published beam uncertainty is ~3× too narrow** | The incoming-beam error measured on held-out shots (P70 0.26, mean energy 18.1 MeV) is 2.4–2.8× the published per-shot spread (0.11, 6.4 MeV). Using it widens the field-strength estimates by ~46% and cuts the stochastic-vs-classical Bayes factor by ~40%. |
-| **Spectral broadening favours stochastic quantum radiation reaction** | On all 10 shots the outgoing spectrum is broader than the incoming one. Only stochastic emission reproduces this: the measured P70 falls inside its 90% predicted range on 9 of 10 shots (the tenth just outside), against 2 of 10 for classical and continuous models. Summed log Bayes factor over classical: **+20** with realistic beam uncertainty (+34 with the published spread). |
+| **Spectral broadening favours stochastic quantum radiation reaction** | On all 10 shots the outgoing spectrum is broader than the incoming one. Only stochastic emission reproduces this: the measured P70 falls inside its 90% predicted range on 9 of 10 shots (the tenth just outside), against 2 of 10 for classical and continuous models. Summed log Bayes factor over classical: **+20** with realistic beam uncertainty (+34 with the published spread). A fair test on simulated shots with realistic beam errors confirms it: classical data would essentially never (p < 10⁻⁴) give the evidence seen. |
 | **Better beam prediction, with honest uncertainty** | Spectral MSE **0.045 vs 0.057** for the published network ensemble (22% lower), with a physics-based peak shape; calibrated 90% intervals cover 89–90% of held-out shots (raw ensembles: 44–68%). |
 | **Accurate surrogate** | MLP ensemble reproduces Ptarmigan to R² 0.98 (energy loss) at ~2× its Monte Carlo noise; ~18,000× faster per call, ~4×10⁶× batched. |
 
@@ -158,9 +158,15 @@ A dedicated diagnostic (`scripts/diagnose_p70.py`) rules out a definition artefa
 
 The stochastic preference drops by ~40% once the measured beam error replaces the published spread (+34 → +20), and roughly halves again when the transverse offset is also free (+9), a parameter the original analysis had to fix for cost. Energy loss alone carries no model information, because a free a0 absorbs the difference.
 
+#### A fair test: realistic beam errors on simulated shots
+
+![Fair recovery test](docs/figures/fair_recovery.png)
+
+Simulated shots are treated like real ones: the incoming beam is only predicted, with the error measured on held-out Gemini shots, and laser and beam settings are nominal. With the summary observables (left), ten classical shots would give a summed evidence of about −1, ten stochastic shots about +8; the 2021 data give **+9.2**, which classical data reach with probability below 10⁻⁴. The full-spectrum likelihood (right) leans to stochastic whatever the truth, because its extra information sits at the high-energy edge, where the predicted beam is least certain; its +32.1 on the 2021 data is reached by classical data 6% of the time, so it adds no independent evidence.
+
 ## Limitations and next steps
 
-- Inference uses two summary observables, which constrain only the effective field strength. A **full-spectrum likelihood** that models the incoming spectrum's shape error is the next step, and the confirmation test for the stochastic preference.
+- Inference uses two summary observables. A **full-spectrum likelihood** (physics-structured surrogate: the outgoing spectrum is a learned linear map of the incoming one) was built and tested: with the incoming beam predicted to ~4% it cannot separate the models, because its extra information sits at the high-energy edge, exactly where the beam prediction is least certain. See the report.
 - Gamma-ray data are not used yet. Los et al.'s effective field strength ⟨ã0⟩ (the mean a0 experienced by the electrons in their model) is 6.7–9.4 on nine shots; ours is mostly 4–7. A direct Ptarmigan check (`scripts/a0_consistency_check.py`) agrees with theirs to about 1 on the three shots with 34–43 MeV energy loss. On the five low-loss shots the electron spectrum cannot pin a0 (the loss is within 1–1.5× the 18 MeV incoming-beam error), and Los et al. also fit the gamma-ray signal. Adding it needs their gamma spectrometer forward-modelled first.
 - About 30% of each beam's energy is in a secondary electron population that the diagnostics cannot predict, which sets a floor on the beam-model error.
 - Laser waist, duration, beam radius and divergence are fixed in inference.
@@ -189,6 +195,9 @@ python scripts/compare_models.py recovery --n 30 && python scripts/compare_model
 python scripts/diagnose_p70.py                     # P70 diagnostics             -> results/diagnostics/p70/
 python scripts/a0_sweep.py && python scripts/make_figures.py   # figures in docs/figures/
 python scripts/a0_consistency_check.py             # direct Ptarmigan check of a0 vs Los et al.
+python scripts/beam_shape_residuals.py && python scripts/recovery_realistic.py   # fair recovery test (realistic beam error)
+pip install -e ".[fullspec]"                       # torch, for the full-spectrum likelihood
+python scripts/fullspec_train.py && python scripts/fullspec_infer.py recovery && python scripts/fullspec_infer.py shots
 ```
 
 Runs are seeded and LightGBM is single-threaded, so results are deterministic.

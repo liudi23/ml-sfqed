@@ -19,6 +19,7 @@ dependencies = [
 dev = ["pytest", "ruff==0.17.5", "pre-commit"]
 demo = ["jupyterlab"]
 app = ["streamlit>=1.50", "plotly>=5.20"]
+fullspec = ["torch>=2.2"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/mlsfqed"]

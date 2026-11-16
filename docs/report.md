@@ -39,9 +39,9 @@ The two analyses agree that quantum radiation reaction describes the data better
 **What it finds** on the 2021 data:
 
 - **The published per-shot beam uncertainty is about 3× too narrow.** Using the measured error widens the field-strength posteriors by ~46% and cuts the stochastic-vs-classical Bayes factor by ~40%.
-- **Spectral broadening favours stochastic quantum radiation reaction.** On every shot the outgoing spectrum is broader than the predicted incoming beam. Only stochastic emission reproduces this: the measured P70 falls inside its 90% predicted range on 9 of 10 shots (the tenth just outside), against 2 of 10 for classical and continuous models. The summed log Bayes factor over classical is +20 with realistic beam uncertainty (+9 with the transverse offset also free).
+- **Spectral broadening favours stochastic quantum radiation reaction.** On every shot the outgoing spectrum is broader than the predicted incoming beam. Only stochastic emission reproduces this: the measured P70 falls inside its 90% predicted range on 9 of 10 shots (the tenth just outside), against 2 of 10 for classical and continuous models. The summed log Bayes factor over classical is +20 with realistic beam uncertainty (+9 with the transverse offset also free). A fair recovery test, with realistic incoming-beam errors on simulated shots, shows that classical data would give about −1 and stochastic data about +8 in that set-up; the data's +9 is reached by classical data with probability below 10⁻⁴.
 
-**Limitations.** The likelihood uses two summary observables (mean energy and the peak measure P70), which constrain only the effective field strength; a full-spectrum likelihood is the next step and the real test of the stochastic preference. The gamma-ray data are not yet used, and on low-loss shots our field strength is lower than Los et al.'s, who fit them. The beam model is trained on no-collision shots, and about 30% of each beam's energy sits in a secondary population the diagnostics cannot predict. Laser waist, duration, beam radius and divergence are fixed, and the surrogate is valid only inside the simulated ranges (a0 ≤ 20). It is trained for the Gemini 2021 set-up: a new experiment needs its own beam data and simulation scan, though the code carries over.
+**Limitations.** The likelihood uses two summary observables (mean energy and the peak measure P70), which constrain only the effective field strength; a full-spectrum likelihood was built but has little power while the incoming beam's energy is predicted only to ~4%. The gamma-ray data are not yet used, and on low-loss shots our field strength is lower than Los et al.'s, who fit them. The beam model is trained on no-collision shots, and about 30% of each beam's energy sits in a secondary population the diagnostics cannot predict. Laser waist, duration, beam radius and divergence are fixed, and the surrogate is valid only inside the simulated ranges (a0 ≤ 20). It is trained for the Gemini 2021 set-up: a new experiment needs its own beam data and simulation scan, though the code carries over.
 
 | Stage | Result |
 | --- | --- |
@@ -257,18 +257,40 @@ Summed natural-log Bayes factors over 10 shots. Los et al.'s values are differen
 
 ![P70 on the 10 shots](figures/p70_shots.png)
 
+### Fair recovery test: realistic beam error
+
+The recovery tests above fit each simulated shot with its true incoming beam and true laser and beam settings, a best case. Here (`scripts/recovery_realistic.py`) each held-out Ptarmigan shot is treated like a real collision shot: the incoming spectrum is only *predicted*, as the true one plus a shape error measured on held-out Gemini shots (`scripts/beam_shape_residuals.py`, median 12% shape error); the likelihood uses 25 further error samples around that prediction and the measured beam error; laser waist, duration, beam radius and divergence stay at nominal values; a0, timing, bunch length and transverse offset are free. 15 shots per true model.
+
+![Fair recovery test](figures/fair_recovery.png)
+
+Shot by shot the comparison still often picks stochastic for classical data, but only by small margins (median log Bayes factor +0.1), so the **sum over shots is not biased**: ten classical shots give a median of −1.3 (5–95%: −7.8 to +3.2), ten continuous −0.5 (−7.9 to +6.2), ten stochastic +8.0 (+3.9 to +12.4). The 2021 data in the same set-up give **+9.2**. That is what stochastic radiation reaction produces, and a value classical data reach with probability below 10⁻⁴ and continuous data with probability 0.008 (bootstrap over the simulated shots). The stochastic preference therefore survives a realistic incoming beam.
+
+### Full-spectrum likelihood
+
+The summary observables discard most of the spectrum, so a likelihood on the whole outgoing spectrum was built and tested (`scripts/fullspec_train.py`, `scripts/fullspec_infer.py`).
+
+**A physics-structured spectrum surrogate.** Radiation reaction acts on each electron independently, so the outgoing spectrum is linear in the incoming one: N_out(E) = Σ N_in(E₀) K(E | E₀, θ). The kernel K, the final-energy distribution of an electron of initial energy E₀ averaged over the beam, is a mixture of three Gaussians in fractional energy loss whose weights, means and widths come from a small network of (E₀, θ), trained on the Ptarmigan scans with the multinomial likelihood of their histograms. One kernel per radiation-reaction model, on the same 4,096 collisions. Because it is linear, it handles any incoming spectrum exactly and propagates incoming-shape errors exactly. On collisions with unseen beams it recovers the outgoing mean energy to 5.4–6.5 MeV and P70 to 0.14–0.20 (R² 0.80–0.86; the stochastic kernel trained on all 8,192 collisions: 3.4 MeV and 0.12, R² 0.88), and direct Ptarmigan runs on a real shot's incoming beam agree with it within Monte Carlo noise.
+
+**Likelihood.** The outgoing spectrum above 310 MeV in 20 MeV bins, normalised; Gaussian with a full covariance from the incoming-shape error (100 samples of the predicted spectrum plus measured residuals, mapped through the kernel), the spectrometer's energy-calibration error (σ_E = 32.45×10⁻⁶ E² MeV, a correlated shift, as in Los et al.), the surrogate error per bin and a small independent floor.
+
+**The spectral edge decides, and it is not known well enough.** A first pass on the real shots favoured *classical* strongly (−16 for stochastic on shot 0). The residuals showed why: the fit is dominated by the high-energy edge. Stochastic emission leaves electrons near the incoming energy, so the result hinges on where the incoming edge was, the least certain part of the beam prediction (edge position error ~33 MeV, ~4%). Freeing the incoming energy scale with a 4% prior removes that artefact (shot 0: −1.8). With it, the fair recovery test above, repeated with the full-spectrum likelihood (45 held-out shots), shows that the comparison has almost no power: ten shots give +19 (+5 to +35) for stochastic data, +11 (−7 to +24) for continuous and +12 (−9 to +33) for classical. With the beam predicted to ~4%, the full spectrum's extra information sits exactly where the beam is uncertain. The full-spectrum likelihood becomes decisive only if the incoming beam is predicted better or measured on the collision shot; the summary observables are the more robust choice for these data.
+
+**On the 2021 shots** the full spectrum gives a summed log Bayes factor for stochastic over classical of +32.1 with the measured beam error and the 4% energy-scale prior (+36.5 with a 2% prior, +30.4 with 6%; +43.4 with the published spread), and +3.2 for continuous over classical. Eight of ten shots favour stochastic. Read against the fair recovery test, this is not decisive: ten classical shots exceed +32.1 with probability 0.06, ten stochastic shots with 0.09 (continuous: 0.0005). The recovery test frees the transverse offset, which the real-shot analysis holds fixed, so the comparison is approximate. The full spectrum is consistent with the summary-statistic result but adds no independent evidence. Results: `results/fullspec/`.
+
+![Full-spectrum likelihood](figures/fullspec.png)
+
 **Caveat.** Shots 8 and 9 show a 20–30% P70 drop with almost no inferred energy loss, which no model produces. Their loss is uncertain by ~19 MeV, so they are not decisive, but they show that incoming-P70 errors of this size occur. The published spread (0.11) ignores them and inflates the Bayes factors; the measured error (0.26) cuts the preference by ~40%.
 
 **Beam chirp.** An energy chirp of ±0.2 or ±0.5 shifts mean energy loss by ≤0.4 MeV and P70 by ≤0.03, within Monte Carlo noise.
 
 ## Limitations and next steps
 
-- **Two summary observables** constrain only the effective a0. A full-spectrum likelihood, with the incoming spectrum's shape error modelled explicitly, is the next step and the confirmation test for the stochastic preference.
+- **Two summary observables** constrain only the effective a0. The full-spectrum likelihood built to go further has almost no model-discriminating power with the incoming beam predicted to ~4%: the high-energy edge it relies on is where the beam prediction is least certain. A better beam prediction, or an incoming-spectrum measurement on the collision shot, is what would make it useful.
 - **Photon data are not used.** Los et al. also fit the gamma-ray spectrometer signal, which is the most likely reason their ã0 differs from ours on the low-loss shots and on shot 0. A critical energy fitted to the public photon spectra is 45–60 MeV on every shot, against 13–35 MeV from Ptarmigan for a0 = 3–12, so that signal can only enter after forward-modelling the detector response.
 - **Fixed nuisances**: laser waist, duration, beam radius and divergence are fixed in inference.
 - **Beam transfer**: the beam model is trained on 2021 no-collision shots and reaches the collision shots only through published predictions; about 30% of each beam's energy is in a secondary population the diagnostics cannot predict.
 - **Surrogate range**: valid inside the simulated ranges (a0 5–20, LMA rates).
-- **Recovery tests are a best case**: the simulated shots are fitted with their true incoming beam and true nuisance parameters. Repeating them with predicted beams of realistic error and nominal nuisance values would show how much the real-data conclusions depend on knowing the beam.
+- **Recovery tests**: the main recovery tests use the true incoming beam (a best case); the fair test with realistic beam error and nominal nuisances confirms the summed evidence but has 15 shots per model, so its tails are uncertain.
 
 ## Code, tests and reproducibility
 

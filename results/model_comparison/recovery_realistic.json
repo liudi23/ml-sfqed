@@ -1,0 +1,275 @@
+{
+ "setup": "mean energy + P70; a0, dz, length, transverse offset free; nominal waist, duration, radius, divergence; incoming beam = true + measured shape residual, likelihood uses 25 residual samples around it and the measured beam error; 15 held-out Ptarmigan runs per true model (loss >= 5 MeV), 4,096-run surrogates",
+ "runs": [
+  {
+   "true": "stochastic",
+   "bf_s": 1.5880196460528264,
+   "bf_c": -0.4433495552297986,
+   "sel": "stochastic"
+  },
+  {
+   "true": "stochastic",
+   "bf_s": 0.10095217512666288,
+   "bf_c": 0.05510164012067875,
+   "sel": "stochastic"
+  },
+  {
+   "true": "stochastic",
+   "bf_s": 1.2355117331039631,
+   "bf_c": -0.1769132806492344,
+   "sel": "stochastic"
+  },
+  {
+   "true": "stochastic",
+   "bf_s": 0.39236878003326314,
+   "bf_c": -0.06575838441942228,
+   "sel": "stochastic"
+  },
+  {
+   "true": "stochastic",
+   "bf_s": 1.943371364875234,
+   "bf_c": 0.012896713795473858,
+   "sel": "stochastic"
+  },
+  {
+   "true": "stochastic",
+   "bf_s": 0.34834225525825246,
+   "bf_c": 0.12132871076954377,
+   "sel": "stochastic"
+  },
+  {
+   "true": "stochastic",
+   "bf_s": 0.07657442015268323,
+   "bf_c": 0.10611378931140791,
+   "sel": "continuous"
+  },
+  {
+   "true": "stochastic",
+   "bf_s": 0.7469450668160942,
+   "bf_c": 0.11365623796819868,
+   "sel": "stochastic"
+  },
+  {
+   "true": "stochastic",
+   "bf_s": 1.334929642702173,
+   "bf_c": 0.20885266626123666,
+   "sel": "stochastic"
+  },
+  {
+   "true": "stochastic",
+   "bf_s": 0.9514554330659362,
+   "bf_c": 0.2308353966964578,
+   "sel": "stochastic"
+  },
+  {
+   "true": "stochastic",
+   "bf_s": 1.0946517539617346,
+   "bf_c": 0.07182238643783201,
+   "sel": "stochastic"
+  },
+  {
+   "true": "stochastic",
+   "bf_s": 0.3281231662435111,
+   "bf_c": 0.08157490288509894,
+   "sel": "stochastic"
+  },
+  {
+   "true": "stochastic",
+   "bf_s": -0.09228807330724997,
+   "bf_c": 0.11115942662858824,
+   "sel": "continuous"
+  },
+  {
+   "true": "stochastic",
+   "bf_s": -0.5324493581352789,
+   "bf_c": 0.006759361433080979,
+   "sel": "continuous"
+  },
+  {
+   "true": "stochastic",
+   "bf_s": 2.5959206818264455,
+   "bf_c": 0.08801732864020195,
+   "sel": "stochastic"
+  },
+  {
+   "true": "continuous",
+   "bf_s": -0.12540968031347965,
+   "bf_c": 0.23657150001650074,
+   "sel": "continuous"
+  },
+  {
+   "true": "continuous",
+   "bf_s": 2.7175697126801737,
+   "bf_c": -0.5662745474981641,
+   "sel": "stochastic"
+  },
+  {
+   "true": "continuous",
+   "bf_s": 0.11110452173655005,
+   "bf_c": 0.05802631091496746,
+   "sel": "stochastic"
+  },
+  {
+   "true": "continuous",
+   "bf_s": -1.3697067756280363,
+   "bf_c": 0.1082007217225609,
+   "sel": "continuous"
+  },
+  {
+   "true": "continuous",
+   "bf_s": 0.6220465746526145,
+   "bf_c": 0.14548188458969946,
+   "sel": "stochastic"
+  },
+  {
+   "true": "continuous",
+   "bf_s": -0.06675162776790611,
+   "bf_c": 0.04110011349825626,
+   "sel": "continuous"
+  },
+  {
+   "true": "continuous",
+   "bf_s": -0.2623169083193311,
+   "bf_c": 0.029738124523052356,
+   "sel": "continuous"
+  },
+  {
+   "true": "continuous",
+   "bf_s": 0.01219819911034481,
+   "bf_c": 0.08591242901962381,
+   "sel": "continuous"
+  },
+  {
+   "true": "continuous",
+   "bf_s": 0.16737163058490356,
+   "bf_c": 0.03127349191569806,
+   "sel": "stochastic"
+  },
+  {
+   "true": "continuous",
+   "bf_s": -0.7473302772236066,
+   "bf_c": 0.0037805345424830605,
+   "sel": "continuous"
+  },
+  {
+   "true": "continuous",
+   "bf_s": 1.271271651518413,
+   "bf_c": 0.19368937456950786,
+   "sel": "stochastic"
+  },
+  {
+   "true": "continuous",
+   "bf_s": 1.265870375093721,
+   "bf_c": 0.07862941970277149,
+   "sel": "stochastic"
+  },
+  {
+   "true": "continuous",
+   "bf_s": -0.7984257686095892,
+   "bf_c": 0.04686758486308751,
+   "sel": "continuous"
+  },
+  {
+   "true": "continuous",
+   "bf_s": -0.17975011922417217,
+   "bf_c": 0.11040182188439385,
+   "sel": "continuous"
+  },
+  {
+   "true": "continuous",
+   "bf_s": -3.6830235577223895,
+   "bf_c": 0.057990319920779854,
+   "sel": "continuous"
+  },
+  {
+   "true": "classical",
+   "bf_s": 0.495815793324045,
+   "bf_c": -0.10748855867119644,
+   "sel": "stochastic"
+  },
+  {
+   "true": "classical",
+   "bf_s": -0.6299541186487492,
+   "bf_c": -0.020054982271951793,
+   "sel": "classical"
+  },
+  {
+   "true": "classical",
+   "bf_s": 0.15467164247156262,
+   "bf_c": 0.07274844660213997,
+   "sel": "stochastic"
+  },
+  {
+   "true": "classical",
+   "bf_s": -0.05595725418165998,
+   "bf_c": 0.05347867817125618,
+   "sel": "continuous"
+  },
+  {
+   "true": "classical",
+   "bf_s": 0.13133349133191352,
+   "bf_c": 0.09264164018653265,
+   "sel": "stochastic"
+  },
+  {
+   "true": "classical",
+   "bf_s": 0.613700730520967,
+   "bf_c": 0.03782714899061279,
+   "sel": "stochastic"
+  },
+  {
+   "true": "classical",
+   "bf_s": -0.38501203526294603,
+   "bf_c": 0.05331229988066788,
+   "sel": "continuous"
+  },
+  {
+   "true": "classical",
+   "bf_s": 0.42283664625354067,
+   "bf_c": 0.16181870095504802,
+   "sel": "stochastic"
+  },
+  {
+   "true": "classical",
+   "bf_s": 0.0880236640374914,
+   "bf_c": 0.0775815341537971,
+   "sel": "stochastic"
+  },
+  {
+   "true": "classical",
+   "bf_s": 1.4012332831111038,
+   "bf_c": -0.04179175144570202,
+   "sel": "stochastic"
+  },
+  {
+   "true": "classical",
+   "bf_s": -3.595068080805323,
+   "bf_c": 0.004969903798458297,
+   "sel": "continuous"
+  },
+  {
+   "true": "classical",
+   "bf_s": -1.0837794539516405,
+   "bf_c": -0.779262649304199,
+   "sel": "classical"
+  },
+  {
+   "true": "classical",
+   "bf_s": -0.0719253565247131,
+   "bf_c": 0.09387895634853471,
+   "sel": "continuous"
+  },
+  {
+   "true": "classical",
+   "bf_s": 0.440821815701125,
+   "bf_c": -0.07888017391586022,
+   "sel": "stochastic"
+  },
+  {
+   "true": "classical",
+   "bf_s": -0.3997601954045118,
+   "bf_c": -0.051900806032432634,
+   "sel": "classical"
+  }
+ ]
+}

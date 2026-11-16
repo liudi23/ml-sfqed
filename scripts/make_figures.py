@@ -11,6 +11,8 @@ Writes docs/figures/:
   recovery_a0.png      parameter recovery on 48 simulated shots: true vs inferred a0 and effective a0
   model_recovery.png   model comparison on 90 simulated shots: which model wins, per true model
   surrogate_accuracy.png  surrogate vs Ptarmigan for energy loss and P70, unseen beams and a0 > 16.5, with LightGBM
+  fair_recovery.png    expected 10-shot evidence per true model under realistic beam error, vs the 2021 data
+  fullspec.png         full-spectrum likelihood: per-shot evidence, recovery, an example fit
   pipeline_checks.png  one predicted-vs-actual panel per stage (needs results/stage3/predictions_beam.json from
                        `stage3_surrogate.py --predictions` and per-shot arrays from beam_prediction_error.py)
 
@@ -382,9 +384,107 @@ def _rmse(q, y):
     return np.sqrt(np.mean((q - y) ** 2))
 
 
+# ------------------------------------------------------------------ fair recovery: what 10 shots of each model give
+def fair_recovery():
+    rng = np.random.default_rng(0)
+    summ = json.loads((R / "model_comparison" / "recovery_realistic.json").read_text())["runs"]
+    full = json.loads((R / "fullspec" / "recovery.json").read_text())["runs"]
+    with open(R / "model_comparison" / "shots.csv") as f:
+        mc = list(csv.DictReader(f))
+    z = {(int(r["shot"]), r["model"]): float(r["logZ_mean+P70"]) for r in mc if r["setup"] == "offset" and r["beam_unc"] == "calibrated"}
+    real_summ = sum(z[(k, "stochastic")] - z[(k, "classical")] for k in range(10))
+    real_full = None
+    if (R / "fullspec" / "shots.json").exists():
+        sh = json.loads((R / "fullspec" / "shots.json").read_text())["shots"]
+        real_full = sum(r["logZ_stochastic"] - r["logZ_classical"] for r in sh if r["beam_unc"] == "measured")
+    fig, axes = plt.subplots(1, 2, figsize=(11.0, 4.2), sharey=True)
+    panels = ((axes[0], [x["bf_s"] for x in summ], [x["true"] for x in summ], real_summ, "Mean energy + P70"),
+              (axes[1], [x["logZ_stochastic"] - x["logZ_classical"] for x in full], [x["true_model"] for x in full], real_full, "Full spectrum"))
+    for ax, bf, tr, real, lab in panels:
+        bf, tr = np.array(bf), np.array(tr)
+        for j, m in enumerate(MODELS):
+            b = bf[tr == m]
+            s = np.array([rng.choice(b, 10).sum() for _ in range(20000)])
+            lo, med, hi = np.percentile(s, [5, 50, 95])
+            ax.plot([lo, hi], [j, j], color=COL[m], lw=8, alpha=0.35, solid_capstyle="round")
+            ax.plot(med, j, "o", color=COL[m], ms=8, mec="white", mew=1.2)
+            if real is not None:
+                p = (s >= real).mean()
+                ax.text(max(hi, real) + 0.8, j, f"P(≥ data) = {p:.2g}" if p > 0 else "P(≥ data) < 1e-4", va="center", fontsize=8.5, color="#444")
+        if real is not None:
+            ax.axvline(real, color="black", lw=1.5)
+            ax.text(real, 2.55, f" 2021 data: {real:+.1f}", fontsize=9, va="bottom")
+        ax.axvline(0, color="#999", lw=1, ls="--")
+        ax.set(xlabel="Summed log Bayes factor over 10 shots, stochastic vs classical", ylim=(-0.6, 2.9))
+        ax.set_title(lab, fontsize=10, loc="left")
+        ax.grid(axis="y", visible=False)
+        ax.set_xlim(ax.get_xlim()[0], ax.get_xlim()[1] + 9)
+    axes[0].set_yticks(range(3), [f"{NAME[m]}\nshots" for m in MODELS], fontsize=8.5)
+    title(fig, "Fair recovery test: what 10 simulated shots of each model give (median, 5–95%), realistic beam error")
+    save(fig, "fair_recovery.png")
+
+
+# ------------------------------------------------------------------ full-spectrum likelihood
+def fullspec():
+    sh = json.loads((R / "fullspec" / "shots.json").read_text())
+    rec = json.loads((R / "fullspec" / "recovery.json").read_text())
+    with open(R / "model_comparison" / "shots.csv") as f:
+        mc = list(csv.DictReader(f))
+    z = {(int(r["shot"]), r["model"]): float(r["logZ_mean+P70"]) for r in mc if r["setup"] == "los" and r["beam_unc"] == "calibrated"}
+    summ_bf = [z[(k, "stochastic")] - z[(k, "classical")] for k in range(10)]
+    rows = {(r["shot"], r["beam_unc"]): r for r in sh["shots"]}
+    full_bf = [rows[(k, "measured")]["logZ_stochastic"] - rows[(k, "measured")]["logZ_classical"] for k in range(10)]
+    fig = plt.figure(figsize=(12.0, 7.6))
+    gs = fig.add_gridspec(2, 2, height_ratios=[1, 1.05], hspace=0.45, wspace=0.28, left=0.07, right=0.98, top=0.88, bottom=0.08)
+    ax = fig.add_subplot(gs[0, :])
+    x = np.arange(10)
+    ax.bar(x - 0.2, summ_bf, 0.38, color=COL["incoming"], label=f"Mean energy + P70 (sum {sum(summ_bf):+.1f})")
+    ax.bar(x + 0.2, full_bf, 0.38, color=COL["stochastic"], label=f"Full spectrum (sum {sum(full_bf):+.1f})")
+    ax.axhline(0, color="#555", lw=1)
+    ax.set(xticks=x, xticklabels=[f"Shot {k}" for k in x], ylabel="log Bayes factor,\nstochastic vs classical")
+    ax.set_ylim(top=max(max(summ_bf), max(full_bf)) * 1.45)
+    ax.legend(loc="upper left", fontsize=8.5, ncol=2)
+    ax.grid(axis="x", visible=False)
+    ax.set_title("Per shot, measured beam error (positive favours stochastic)", fontsize=9.5, loc="left")
+    bx = fig.add_subplot(gs[1, 0])
+    conf = rec["summary"]["confusion"]
+    M = np.array([[conf[t][m] for m in MODELS] for t in MODELS], float)
+    F = M / M.sum(1, keepdims=True)
+    bx.imshow(F, cmap="Blues", vmin=0, vmax=1)
+    for i in range(3):
+        for j in range(3):
+            bx.text(j, i, f"{F[i, j]:.0%}", ha="center", va="center", fontsize=9.5, color="white" if F[i, j] > 0.55 else "#222")
+    short = ["Stochastic", "Continuous", "Classical"]
+    bx.set_xticks(range(3), short, fontsize=8.5)
+    bx.set_yticks(range(3), short, fontsize=8.5)
+    bx.set(xlabel="Model with the highest evidence", ylabel="Model that generated the shot")
+    bx.grid(False)
+    bx.set_title(f"Recovery on {int(M.sum())} held-out Ptarmigan shots, realistic beam error", fontsize=9.5, loc="left")
+    for sp in bx.spines.values():
+        sp.set_visible(False)
+    cx = fig.add_subplot(gs[1, 1])
+    k = int(np.argmax(np.abs(full_bf)))
+    r = rows[(k, "measured")]
+    e = np.array(sh["edges"])
+    c = 0.5 * (e[1:] + e[:-1])
+    cx.plot(c, np.array(r["obs"]) * 100, "o", color="black", ms=3.5, label="Measured", zorder=3)
+    for m in ("stochastic", "classical"):
+        p, s = np.array(r[f"fit_{m}"]["pred"]) * 100, np.array(r[f"fit_{m}"]["sd"]) * 100
+        cx.plot(c, p, color=COL[m], lw=2, label=f"{NAME[m]} (best fit)")
+        cx.fill_between(c, p - s, p + s, color=COL[m], alpha=0.15, lw=0)
+    cx.set(xlabel="Electron energy (MeV)", ylabel="Share of electrons per 20 MeV (%)")
+    cx.legend(fontsize=8)
+    cx.set_title(f"Shot {k}: measured outgoing spectrum and best fits (bands: 1σ)", fontsize=9.5, loc="left")
+    title(fig, "Full-spectrum likelihood: model comparison on the 2021 shots and on simulated shots")
+    save(fig, "fullspec.png")
+
+
 if __name__ == "__main__":
     OUT.mkdir(parents=True, exist_ok=True)
     figs = {"p70_shots": p70_shots, "bayes_factors": bayes_factors, "a0_eff": a0_eff,
-            "recovery_a0": recovery_a0, "model_recovery": model_recovery, "pipeline_checks": pipeline_checks, "surrogate_accuracy": surrogate_accuracy, "sweep_gif": sweep_gif}
+            "recovery_a0": recovery_a0, "model_recovery": model_recovery, "pipeline_checks": pipeline_checks, "surrogate_accuracy": surrogate_accuracy, "fair_recovery": fair_recovery, "fullspec": fullspec, "sweep_gif": sweep_gif}
     for name in sys.argv[1:] or figs:
+        if name == "fullspec" and not (R / "fullspec" / "shots.json").exists():
+            print("skipping fullspec.png: run scripts/fullspec_infer.py shots first")
+            continue
         figs[name]()

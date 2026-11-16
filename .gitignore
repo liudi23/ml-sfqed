@@ -22,3 +22,6 @@ results/inference/*_quick.*
 
 # run logs
 *.log
+
+# full-spectrum real-shot results hold binned Los et al. spectra: local only
+results/fullspec/shots*.json

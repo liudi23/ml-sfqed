@@ -36,7 +36,7 @@ The peak of the beam model is not a Gaussian but the shape expected from the phy
 | measured | + transverse offset | +0.8 | +9.2 |
 | Los et al., full spectrum | | +2.8 | +2.9 |
 
-Summed natural-log Bayes factors over the 10 shots. Energy loss alone carries no model information (+1), because a free a0 absorbs the difference. On simulated shots the method identifies stochastic data 93% of the time.
+Summed natural-log Bayes factors over the 10 shots. Energy loss alone carries no model information (+1), because a free a0 absorbs the difference. A fair test on simulated shots, with the incoming beam predicted with realistic error and nominal laser and beam settings, gives about −1 for ten classical shots and +8 for ten stochastic shots in the offset-free set-up; the data's +9.2 is reached by classical data with probability below 10⁻⁴.
 
 **Field strength.** With two summary observables only the effective a0 (the field the electrons experience) is constrained: 4–7 on most shots, ~11 on the shot with the largest energy loss. Where the energy loss is clear, a direct simulation matches Los et al.'s effective ⟨ã0⟩ to about 1; on low-loss shots the electron data alone cannot pin a0, and Los et al. also used the gamma-ray signal.
 
@@ -49,6 +49,6 @@ Summed natural-log Bayes factors over the 10 shots. Energy loss alone carries no
 
 ## 5. Limitations and next steps
 
-The likelihood uses two summary observables; a full-spectrum likelihood with an explicit model of the incoming-shape error is the next step and the real test of the stochastic preference. The gamma-ray data are not yet used; adding them needs the spectrometer response modelled. Laser waist, duration, beam radius and divergence are fixed, and the surrogate is valid only within the simulated ranges (a0 5–20). The beam model is trained on no-collision shots and reaches the collision shots through published predictions.
+The likelihood uses two summary observables. A full-spectrum likelihood was built (a physics-structured surrogate in which the outgoing spectrum is a learned linear map of the incoming one) but, with the incoming beam energy predicted to ~4%, it cannot separate the models: its extra information sits at the high-energy edge, where the prediction is least certain. The gamma-ray data are not yet used; adding them needs the spectrometer response modelled. Laser waist, duration, beam radius and divergence are fixed, and the surrogate is valid only within the simulated ranges (a0 5–20). The beam model is trained on no-collision shots and reaches the collision shots through published predictions.
 
 **References.** M. J. V. Streeter et al., High Power Laser Sci. Eng. 11, e9 (2023) · E. E. Los et al., Nature Communications, doi:10.1038/s41467-025-67918-8; High Power Laser Sci. Eng. (2024), doi:10.1017/hpl.2024.83 · T. G. Blackburn et al., Phys. Plasmas 30, 093903 (2023) · W. Lu et al., PRSTAB 10, 061301 (2007).
